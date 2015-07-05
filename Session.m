@@ -1,14 +1,23 @@
 classdef Session
     properties
         sessionID
+        timeStamp
+        
         subject
-        dataPath
+        
+        sessionPath
         sessionFolder
-        singleUnits
+        trialDataPath
+        
         trials
+        
         history
     end
     methods
+        function sess = Session()
+            
+        end
+        
         function process(session)
             % loop through the channels, detect spikes, sort and then
             % output singleUnits
