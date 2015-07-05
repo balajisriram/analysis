@@ -14,7 +14,7 @@ classdef Session
         history
     end
     methods
-        function sess = Session()
+        function sess = Session(sessionPath,sessionFolder,trialDataPath)
             
         end
         
