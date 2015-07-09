@@ -350,7 +350,7 @@ end
 end
 
 function kk=klustaModelTextToStruct(modelFile)
-
+modelFile
 fid=fopen(modelFile,'r');  % this is only the first one!
 if fid==-1
     modelFile

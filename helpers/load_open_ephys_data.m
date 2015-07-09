@@ -1,4 +1,4 @@
-function [data, timestamps, info] = load_open_ephys_data(filename)
+function [data, timestamps, info, dataMean, dataStd] = load_open_ephys_data(filename)
 
 %
 % [data, timestamps, info] = load_open_ephys_data(filename)
@@ -261,6 +261,9 @@ elseif strcmp(filetype, 'continuous')
     
     % convert to microvolts
     data = data.*info.header.bitVolts;
+    
+    dataMean = mean(data);
+    dataStd = std(data);
     
     timestamps = nan(size(data));
     

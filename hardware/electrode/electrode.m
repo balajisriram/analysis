@@ -53,7 +53,7 @@ classdef electrode
         function groups = getPotentialGroups(etrode)
             switch etrode.electrodeType
                 case 'NeuroNexus16Lin100um413um2'
-                    groups = {[1,2]};
+                    groups = {{1,2},{3,4}};
                 otherwise
                     groups = 0:16;
             end
