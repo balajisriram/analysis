@@ -49,5 +49,14 @@ classdef electrode
                tf = false;
             end
         end
+        %% getPotentialGroups (returns which channels to group together).
+        function groups = getPotentialGroups(etrode)
+            switch etrode.electrodeType
+                case 'NeuroNexus16Lin100um413um2'
+                    groups = {{1,2},{3,4}};
+                otherwise
+                    groups = 0:16;
+            end
+        end
     end %methods
 end % classdef
