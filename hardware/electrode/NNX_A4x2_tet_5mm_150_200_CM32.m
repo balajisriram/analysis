@@ -1,4 +1,4 @@
-classdef electrode
+classdef NNX_A4x2_tet_5mm_150_200_CM32
     properties 
         type = 'generic';
         configuration = 'unknown';
