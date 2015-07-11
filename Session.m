@@ -3,7 +3,7 @@ classdef Session
         sessionID % rip From Folder
         timeStamp % get automatically
         
-        subject   % rip from folder
+        subject   
         electrode % grouping of electrodes. (single or multi-channel).
         monitor   % all 3 of these object in the 'hardware' folder
         rig
@@ -13,51 +13,39 @@ classdef Session
         trialDataPath 
         trials
         
-        groupMean
-        groupStd
-        rawData
-        rawTimes
+        trodes
+        event
+        units
         
-        unitData
-        eventsData
-        spikeData
-        
-        history      
+        history       = {};
     end
     methods
-        function sess = Session(sessionPath,sessionFolder,trialDataPath, electrodeName, monitorName, rigName, rigState) %(changed by adding "rigstate" to pass in as well)
-            
-            %added this because not sure better way to do it manually.
-            addpath(genpath('hardware'));
-            
-            index = strfind(sessionFolder, '_');
-            sess.subject = sessionFolder(1:index(1));   %works for regular folders but commented out now for test
-            
+        function sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, mon, rigStat)
+            assert(ischar(subject),'subject input is not a character')
+            sess.subject = subject;
+                        
             sess.timeStamp = now;
             
-            % commented out for now to test
-            %assert((exist(sessionPath,'dir')==7),'No Access to sessionPath or not correct path');
+            assert((exist(sessionPath,'dir')==7),'No Access to sessionPath or not correct path');
             sess.sessionPath = sessionPath;
             
-            % commented out for now to test
-            %assert((exist(fullfile(sessionPath,sessionFolder),'dir')==7),'No Access to sessionFolder or not correct path');
+            assert((exist(fullfile(sessionPath,sessionFolder),'dir')==7),'No Access to sessionFolder or not correct path');
             sess.sessionFolder = sessionFolder;
             
-            % commented out for now to test
-            %assert((exist(trialDataPath,'dir')==7),'No Access to trialDataPath or not Correct path');
+            assert((exist(trialDataPath,'dir')==7),'No Access to trialDataPath or not Correct path');
             sess.trialDataPath = trialDataPath;
             
-            assert(ischar(electrodeName),'electrodeName is not a string');
-            sess.electrode = electrode(electrodeName);
+            assert(isa(etrode,'electrode'),'etrode is not an electrode');
+            sess.electrode = etrode;
             
-            assert(ischar(monitorName),'monitorName is not a string');
-            sess.monitor = monitor(monitorName);
+            assert(isa(mon,'monitor'),'mon is not a monitor');
+            sess.monitor = mon;
+ 
+            assert(isa(rigStat,'rig'),'rigStat is not a rig');
+            sess.rig = rigStat;
             
-            % changed this to call constructor correctly, before only
-            % passed one arg into constructor. 
-            assert(ischar(rigName),'rigName is not a string');
-            sess.rig = rig(rigName, rigState);
-            
+            sess.sessionID = sprintf('%s_%s',upper(subject),datestr(sess.timeStamp,30));
+            sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
         function [unitData eventsData spikeData groupMean groupStd session] = process(session, spikeDetectionParams, spikeSortingParams) %had to add another parameter
@@ -80,9 +68,6 @@ classdef Session
             % timestamp = time change occurs
             % toggle = rising edge or falling edge
             % eventID = what kind of event was it? trial, stim, etc... 
-            
-            addpath(genpath('helpers'));
-            addpath(genpath('data'));
             
             % 1. get events data (##pass in correct file)
             eventsData = eventData(fullfile(session.trialDataPath,'all_channels.events'));
