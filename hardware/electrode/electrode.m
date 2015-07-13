@@ -20,7 +20,7 @@ classdef electrode
         function trodes = getIndividualChannelsAsTrodes(etrode)
             chans = 1:etrode.numChans;
             chans = chans(~ismember(chans,etrode.disabled));
-            trodes = 
+            trodes = 1;
         end
     end %methods
 end % classdef
