@@ -1,12 +1,19 @@
 classdef eventData
     
     properties
-        eventDataFile
+        eventFolder
         
         trials
         stim
+        frame
         LED1
         LED2
+        LickL
+        LickC
+        LickR
+        RewL
+        RewC
+        RewR
     end
     
     properties (Constant=true)
@@ -23,14 +30,23 @@ classdef eventData
     end
     
     methods
-        % ctor just gets all relevant data, complexity of getting data done
-        % here.
-        function e = eventData(filename)
-            assert()
-            e.eventDataFile = filename;
+        function e = eventData(foldername)
+            assert(isdir(foldername),'events folder unavailable');
+            e.eventFolder = foldername;
             
+            e = e.getChannelEvents();
+            e = e.getTrialEvents();
+            e = e.getOtherMessages();
+        end
+        
+            
+    end
+    
+    methods
+        
+        function e = getChannelEvents(e)
             %opens event file, gets info
-            [eventTimes, eventID, eventChannel] = openEvents(filename);
+            [eventTimes, eventID, eventChannel] = openEvents(fullfile(e.eventFolder,'all_channels.events'));
             
             whichChans = unique(eventChannel);
             
@@ -48,11 +64,14 @@ classdef eventData
                 e.out(i).eventTimes = eventTimesThatChannelUniq;
                 e.out(i).eventID = eventIDThatChannelUniq;
             end
-            
-            
+        end
+        
+        function e = getTrialEvents(e)
+        end
+        
+        function e = getOtherMessages(e)
         end
     end
-    
     
     methods(Static)
         function [timestamps eventID eventChannel] = openEvents(filename)
