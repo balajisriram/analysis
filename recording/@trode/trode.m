@@ -7,6 +7,12 @@ classdef trode
         
         units
         
+        spikeEvents
+        spikeWaveForms
+        spikeTimeStamps
+        spikeAssignedCluster
+        spikeRankedCluster
+        
         Mean
         Std
     end
@@ -41,7 +47,7 @@ classdef trode
                     if any(diff(rawTimestamps)>tr.maxAllowableSamplingRateDeviation)
                         error('bad timestamps! why?');
                     end
-                    tr.NeuralData = [tr.neuralData rawData];
+                    tr.NeuralData = [tr.NeuralData rawData];
                     tr.NeuralDataTimes = rawTimestamps;
                     tr.Mean = [tr.Mean dataMean];
                     tr.Std = [tr.Std dataStd];
