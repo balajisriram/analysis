@@ -14,13 +14,12 @@ classdef Session
         trials
         
         trodes
-        event
-        units
-        
+        eventData
+                
         history       = {};
     end
     methods
-        function sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, mon, rigStat)
+        function sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, mon, rigState)
             assert(ischar(subject),'subject input is not a character')
             sess.subject = subject;
                         
@@ -48,10 +47,7 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
-        function [unitData eventsData spikeData groupMean groupStd session] = process(session, spikeDetectionParams, spikeSortingParams) %had to add another parameter
-            % loop through the channels, detect spikes, sort and then
-            % output singleUnits, eventsData
-            %
+        function session = process(session)            %
             % single units should be stored by electrode. i.e. 
             % singleUnit(i) is a list of singleUnits or identified clusters
             % for electrode i. 
@@ -70,56 +66,17 @@ classdef Session
             % eventID = what kind of event was it? trial, stim, etc... 
             
             % 1. get events data (##pass in correct file)
-            eventsData = eventData(fullfile(session.trialDataPath,'all_channels.events'));
+            session.eventData = eventData(session.trialDataPath);
             
-            % 2. get electrode grouping information to specify how to
-            %    process spikes
-            grouping = getPotentialGroups(session.electrode);
+            % 2. get the trodes for the electrode
+            session.trodes = session.electrode.getPotentialTrodes;
             
-            % 3. use grouping info to process spikes            
-            % i. cycle through each group
-            % format of grouping: 1 3 6 = 2 groups: 1 3 6 and 2 4 5
-            %                     2 4 5
-            allGroupsData = {};
-            allGroupsTimes = {};
-            allGroupsMean = {};
-            allGroupsStd = {};
-            allGroupsSpikes = {};
-            allGroupsSpikeWaveforms = {};
-            allGroupsSpikeTimes = {};
-            allGroupsUnitData = {};
+            % 3. detect spikes
+            session = session.detectSpikes;
             
-            %to fix small bug with empty cell on first iteration
-            firstTime = 1;
-  
-            for group = 1:length(grouping)
-                groupData = [];
-                groupTimes = [];
-                groupMean = [];
-                groupStd = [];
-                % a. for each channel in group
-                for index = 1:length(grouping{group})
-                    %builds filepath to pass into load function (hardcoded
-                    %for now)
-                    contFile = fullfile(session.sessionPath,session.sessionFolder,['108_CH',int2str(grouping{group}{index}),'.continuous']);
-
-                    % i. load the cont data of each file
-                    [rawData, rawTimestamps, rawInfo, dataMean, dataStd] = load_open_ephys_data(contFile);
-
-                    % ii. combine raw data into one largers set. i.e. if
-                    % group size == 4 and data length == 10. rawData should
-                    % be 1x10 and groupData should be 4x10
-                    groupData = [groupData rawData];
-                    groupTimes = [groupTimes rawTimestamps];
-                    groupMean = [groupMean dataMean];
-                    groupStd = [groupStd dataStd];
-                end
-                allGroupsData = [allGroupsData groupData];
-                allGroupsTimes = [allGroupsTimes groupTimes];
-                allGroupsMean = [allGroupsMean groupMean];
-                allGroupsStd = [allGroupsStd groupStd];
-                
-                % b. detect spike on possibly grouped raw data 
+            % 4. sort spikes
+            session = session.sortSpikes;
+            
                 [spikes, spikeWaveforms, spikeTimes]= detectSpikesFromNeuralData(groupData, groupTimes, spikeDetectionParams);
                 %spikeData.spikes = spikes;
                 %spikeData.spikeWaveforms = spikeWaveforms;
@@ -174,6 +131,13 @@ classdef Session
             session.spikeData = spikeData;
             
         end      
+        
+        function session = detectSpikes(session)
+            for i = 1:length(session.trodes)
+                dataPath = fullfile(session.sessionPath,session.sessionFolder);
+                session.trodes(i) = session.trodes(i).detectSpikes(dataPath);
+            end
+        end
         
         function [fileName] = saveSession(session)  % save session as a struct to mat file
             fileName = [session.sessionFolder,'___',int2str(session.timeStamp),'.mat'];
