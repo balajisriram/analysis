@@ -53,6 +53,12 @@ classdef trode
                     tr.Std = [tr.Std dataStd];
                 end
             end
+            
+            meanAndStd = [tr.Mean; tr.Std];
+            
+            tr.detectionParams = tr.detectionParams.setupAndValidateParams(meanAndStd);
+            [tr.spikeEvents, tr.spikeWaveForms, tr.spikeTimeStamps]= ...
+                detectSpikesFromNeuralData(tr.NeuralData, tr.NeuralDataTimes, tr.detectionParams);
         end
         
         function tr = sortSpikes(tr)
