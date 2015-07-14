@@ -44,6 +44,17 @@ classdef filteredThreshold < spikeDetectionParam
                     out.thresholdMethod = p.thresholdMethod;
             end
         end
+        
+        function par = setupAndValidateParams(par,varargin)
+            switch uppser(par.thresholdMethod)
+                case 'RAW'
+                    if nargin == 2
+                case 'STD'
+            end
+        end
+        
+        function [spikes, spikeWaveforms, spikeTimestamps] = detectSpikesFromNeuralData(par)
+        end
     end
     
 end

@@ -9,5 +9,8 @@ classdef spikeDetectionParam
             out.paramName = paramName;
         end
         
+        function par = setupAndValidateParams(par,varargin)
+            disp('doing nothing here');
+        end
     end
 end

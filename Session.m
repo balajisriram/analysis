@@ -76,14 +76,7 @@ classdef Session
             
             % 4. sort spikes
             session = session.sortSpikes;
-            
-                [spikes, spikeWaveforms, spikeTimes]= detectSpikesFromNeuralData(groupData, groupTimes, spikeDetectionParams);
-                %spikeData.spikes = spikes;
-                %spikeData.spikeWaveforms = spikeWaveforms;
-                %spikeData.spikeTimes = spikeTimes;
-                allGroupsSpikes = [allGroupsSpikes spikes];
-                allGroupsSpikeWaveforms = [allGroupsSpikeWaveforms spikeWaveforms];
-                allGroupsSpikeTimes = [allGroupsSpikeTimes spikeTimes];
+
                 
                 %group spikewaveforms across multiple channels to one extended data set
                 waveformsToCluster = [];
