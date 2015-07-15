@@ -651,7 +651,7 @@ end
 function trodesMenu_Initialize(hObject, eventdata, handles)
 trodesAvail = {};
 for i = 1:length(handles.trodes)
-    trodesAvail{i} = createTrodeName(handles.trodes{i});
+    trodesAvail{i} = createTrodeName(handles.trodes(i));
 end
 currTrodeNum = find(strcmp(handles.currTrode,trodesAvail));
 set(handles.trodesMenu,'String',trodesAvail);
@@ -661,7 +661,7 @@ end
 function clusterListPanel_Initialize(hObject, eventdata, handles)
 whichTrode = handles.currTrode;
 try
-    rankedClustersCell = handles.currentSpikeRecord.(whichTrode).rankedClusters;
+    rankedClustersCell = whichTrode.spikeRankedCluster;
 catch ex
     if strfind(ex.message,'Reference to non-existent field ''rankedClusters''')
         ex2 = MException('InteractiveInspectGUI:noRankedClusters','Did you sort those cells?');
@@ -1322,12 +1322,12 @@ function [whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
     trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
     getSpikeData(handles)
 whichTrode = handles.currTrode;
-spikes =  handles.currentSpikeRecord.(whichTrode).spikes;
-spikeWaveforms =  handles.currentSpikeRecord.(whichTrode).spikeWaveforms;
-assignedClusters =  handles.currentSpikeRecord.(whichTrode).assignedClusters;
-spikeTimestamps = handles.currentSpikeRecord.(whichTrode).spikeTimestamps;
-trialNumForSpikes = handles.currentSpikeRecord.(whichTrode).trialNumForDetectedSpikes;
-rankedClustersCell = handles.currentSpikeRecord.(whichTrode).rankedClusters;
+spikes = whichTrode.spikeEvents;
+spikeWaveforms =  whichTrode.waveformsToCluster; % ## maybe would rather use whichTrode.spikeWaveforms?
+assignedClusters = whichTrode.spikeAssignedCluster; 
+spikeTimestamps = whichTrode.spikeTimeStamps;
+trialNumForSpikes = 1; % ## not sure what to do for trial num yet
+rankedClustersCell = whichTrode.spikeRankedCluster;
 processedClusters = handles.currentSpikeRecord.(whichTrode).processedClusters;
 spikeModel = handles.currentSpikeRecord.(whichTrode).spikeModel;
 
