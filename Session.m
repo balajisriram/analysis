@@ -40,7 +40,7 @@ classdef Session
             assert(isa(mon,'monitor'),'mon is not a monitor');
             sess.monitor = mon;
  
-            % ## rigstate not a class so doesnt really make sense - assert(isa(rigStat,'rig'),'rigStat is not a rig');
+            assert(isa(rigState,'rig'),'rigStat is not a rig');
             sess.rig = rigState;
             
             sess.sessionID = sprintf('%s_%s',upper(subject),datestr(sess.timeStamp,30));
@@ -48,23 +48,6 @@ classdef Session
         end
         
         function session = process(session)            %
-            % single units should be stored by electrode. i.e. 
-            % singleUnit(i) is a list of singleUnits or identified clusters
-            % for electrode i. 
-            %
-            % singleUnit should be its own class with the following fields
-            % groupID = electrode this unit found in
-            % unitID = unique ID for this particular unit in particular 
-            %          electrode. 
-            % timestamp = vector of timestamps that this waveform spike
-            %             occured
-            % waveform = waveform of spike at the timestamp
-            %
-            % eventsData should also be its own class with following fields
-            % timestamp = time change occurs
-            % toggle = rising edge or falling edge
-            % eventID = what kind of event was it? trial, stim, etc... 
-            
             % 1. get events data (##pass in correct file)
             session.eventData = eventData(session.trialDataPath);
             
@@ -83,8 +66,7 @@ classdef Session
                 session.trodes(i) = session.trodes(i).sortSpikes();
             end
         end
-
-        
+      
         function session = detectSpikes(session)
             for i = 1:length(session.trodes)
                 dataPath = fullfile(session.sessionPath,session.sessionFolder);
