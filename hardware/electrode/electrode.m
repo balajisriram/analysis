@@ -14,13 +14,14 @@ classdef electrode
         %% getPotentialTrodes (returns which channels to group together).
         function trodes = getPotentialTrodes(etrode)
             warning('ideally should be set by the subclass. using defaults here');
-            trodes =  getIndividualChannelsAsTrodes(etrode, 1); % ## added group 
+            trodes =  getIndividualChannelsAsTrodes(etrode); % ## added group 
         end
         
         function trodes = getIndividualChannelsAsTrodes(etrode)
-            trodes = trode(1,etrode.numChans);
-            for i = 1:etrode.numChans
-                trodes(i) = trode(i);
+            trodes = [];
+            chans = setdiff(1:etrode.numChans,etrode.disabled);
+            for i = 1:length(chans)
+                trodes = [trodes trode(chans(i))];
             end
         end
     end %methods
