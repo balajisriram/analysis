@@ -8,7 +8,6 @@ classdef NNX_A4x2_tet_5mm_150_200_CM32<electrode
         %% constructor
         function e = NNX_A4x2_tet_5mm_150_200_CM32(varargin)
             e.type = 'Neuronexus';
-            % ## changing for now to test - e.numChans = 32;
             e.numChans = 32;
             e.configuration = '4 Shank; 2 tets per shank';
             

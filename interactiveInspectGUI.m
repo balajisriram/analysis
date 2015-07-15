@@ -812,12 +812,12 @@ function sortSpikesButton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 % get the spikes data
 whichTrode = handles.currTrode;
-spikes = handles.currentSpikeRecord.(whichTrode).spikes;
-spikeTimestamps = handles.currentSpikeRecord.(whichTrode).spikeTimestamps;
-spikeWaveforms = handles.currentSpikeRecord.(whichTrode).spikeWaveforms;
+spikes = whichTrode.spikeEvents;
+spikeTimestamps = whichTrode.spikeTimeStamps;
+spikeWaveforms = whichTrode.waveformsToCluster;
 spikeSortingParams = handles.spikeSortingParams.(whichTrode);
-rankedClustersCell = handles.currentSpikeRecord.(whichTrode).rankedClusters;
-assignedClusters = handles.currentSpikeRecord.(whichTrode).assignedClusters;
+rankedClustersCell = whichTrode.spikeRankedCluster;
+assignedClusters = whichTrode.spikeAssignedCluster;
 
 % sometimes rankedClusters is a Cell array. Just
 if iscell(rankedClustersCell) %(happens when we call after sorting on every chunk)
@@ -1002,14 +1002,14 @@ function mergePushButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 whichTrode = handles.currTrode;
-spikes =  handles.currentSpikeRecord.(whichTrode).spikes;
-spikeWaveforms =  handles.currentSpikeRecord.(whichTrode).spikeWaveforms;
-assignedClusters =  handles.currentSpikeRecord.(whichTrode).assignedClusters;
-spikeTimestamps = handles.currentSpikeRecord.(whichTrode).spikeTimestamps;
-trialNumForSpikes = handles.currentSpikeRecord.(whichTrode).trialNumForDetectedSpikes;
-rankedClustersCell = handles.currentSpikeRecord.(whichTrode).rankedClusters;
-processedClusters = handles.currentSpikeRecord.(whichTrode).processedClusters;
-spikeModel = handles.currentSpikeRecord.(whichTrode).spikeModel;
+spikes =  whichTrode.spikeEvents;
+spikeWaveforms =  whichTrode.waveformsToCluster;
+assignedClusters =  whichTrode.spikeAssignedCluster;
+spikeTimestamps = whichTrode.spikeTimeStamps;
+trialNumForSpikes = 1; % ##trial num
+rankedClustersCell = whichTrode.spikeRankedCluster;
+processedClusters = whichTrode.clusteredSpikes;
+spikeModel = whichTrode.spikeModel;
 
 % sometimes rankedClusters is a Cell array. Just
 if iscell(rankedClustersCell) %(happens when we call after sorting on every chunk)
@@ -1141,14 +1141,14 @@ function hist10MSAxis_ButtonDownFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
 whichTrode = handles.currTrode;
-spikes =  handles.currentSpikeRecord.(whichTrode).spikes;
-spikeWaveforms =  handles.currentSpikeRecord.(whichTrode).spikeWaveforms;
-assignedClusters =  handles.currentSpikeRecord.(whichTrode).assignedClusters;
-spikeTimestamps = handles.currentSpikeRecord.(whichTrode).spikeTimestamps;
-trialNumForSpikes = handles.currentSpikeRecord.(whichTrode).trialNumForDetectedSpikes;
-rankedClustersCell = handles.currentSpikeRecord.(whichTrode).rankedClusters;
-processedClusters = handles.currentSpikeRecord.(whichTrode).processedClusters;
-spikeModel = handles.currentSpikeRecord.(whichTrode).spikeModel;
+spikes =  whichTrode.spikeEvents;
+spikeWaveforms =  whichTrode.waveformsToCluster;
+assignedClusters =  whichTrode.spikeAssignedCluster;
+spikeTimestamps = whichTrode.spikeTimeStamps;
+trialNumForSpikes = 1; % ##trial num
+rankedClustersCell = whichTrode.spikeRankedCluster;
+processedClusters = whichTrode.clusteredSpikes;
+spikeModel = whichTrode.spikeModel;
 
 % now check if worth plotting
 if isempty(spikes)
@@ -1235,8 +1235,8 @@ function processedClusterButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 whichTrode = handles.currTrode;
-rankedClustersCell = handles.currentSpikeRecord.(whichTrode).rankedClusters;
-assignedClusters =  handles.currentSpikeRecord.(whichTrode).assignedClusters;
+rankedClustersCell = whichTrode.spikeRankedCluster;
+assignedClusters =  whichTrode.spikeAssignedCluster;
 
 
 % sometimes rankedClusters is a Cell array. Just
@@ -1328,8 +1328,8 @@ assignedClusters = whichTrode.spikeAssignedCluster;
 spikeTimestamps = whichTrode.spikeTimeStamps;
 trialNumForSpikes = 1; % ## not sure what to do for trial num yet
 rankedClustersCell = whichTrode.spikeRankedCluster;
-processedClusters = handles.currentSpikeRecord.(whichTrode).processedClusters;
-spikeModel = handles.currentSpikeRecord.(whichTrode).spikeModel;
+processedClusters = whichTrode.clusteredSpikes;
+spikeModel = whichTrode.spikeModel;
 
 % sometimes rankedClusters is a Cell array. Just
 if iscell(rankedClustersCell) %(happens when we call after sorting on every chunk)

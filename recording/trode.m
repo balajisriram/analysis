@@ -13,6 +13,8 @@ classdef trode
         spikeAssignedCluster
         spikeRankedCluster
         waveformsToCluster  % ## to make it easier to plot clusters across all channels.
+        clusteredSpikes
+        spikeModel          % ## added these two for interactivity with gui
         
         Mean
         Std
@@ -33,7 +35,7 @@ classdef trode
             % ## not sure this is correct error check - assert(isnumeric(chans),'chans is not a numeric array')
             tr.chans = chans;
             % this stuff is hard coded. but thats okay.
-            tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(4,1,length(chans)),'std');
+            tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(10,1,length(chans)),'std');
             
             % set standard sorting params here
             tr.sortingParams = sortingParam(); % ## StandardKlustaKwik
@@ -79,7 +81,15 @@ classdef trode
             %tr.sortingParams = sortingParam(); % ## moved to constructor
             tr.waveformsToCluster = reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans));
 
-            [tr.spikeAssignedCluster, tr.spikeRankedCluster, spikeModel] = tr.sortingParams.sortSpikesDetected(tr.spikeEvents, tr.waveformsToCluster, tr.spikeTimeStamps);
+            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.spikeModel] = tr.sortingParams.sortSpikesDetected(tr.spikeEvents, tr.waveformsToCluster, tr.spikeTimeStamps);
+            
+            tr.clusteredSpikes = {};
+            for i = 1:length(tr.spikeRankedCluster)
+                cluster = [];
+                cluster = tr.waveformsToCluster(tr.spikeAssignedCluster==tr.spikeRankedCluster(i), :);
+                tr.clusteredSpikes = [tr.clusteredSpikes cluster];
+            end
+            
         end
         
         function out = numSpikes(tr)
