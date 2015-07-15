@@ -1,33 +1,29 @@
 classdef monitor
-    properties (GetAccess = public,SetAccess = private)
+    properties
         monitorName
         monitorType
-    end
-    properties (Access = private)
+
         width
         height
         xPix
         yPix
+        
+        calibration
     end
     methods
         %% constructor
-        function s = monitor(name)
+        function s = monitor(name,varargin)
             s.monitorName = name;
-            switch s.monitorName
-                case 'WestinghouseL2410NM'
-                    s.monitorType= 'LCD';
-                    s.width = 520; %mm
-                    s.height = 325; %mm
-                    s.xPix = 1920;
-                    s.yPix = 1200;
-                case 'ViewSonicPF790-VCDTS21611'
-                    s.monitorType= 'CRT';
-                    s.width = 405; %mm
-                    s.height = 310; %mm
-                    s.xPix = 1600;
-                    s.yPix = 1200;
+            switch nargin
+                case 2
+                    monProp = varargin{1};
+                    s.monitorType = monProp.monitorType;
+                    s.width = monProp.width;
+                    s.height = monProp.height;
+                    s.xPix = monProp.xPix;
+                    s.yPix = monProp.yPix;
                 otherwise
-                    error('monitor:unsupportedInputType','unsupported monitor');
+                    error('no idea how you are calling the monitor');
             end
         end % electrode
         
@@ -49,6 +45,10 @@ classdef monitor
             end
             out = [s.xPix s.yPix];
             out = out(which);
+        end
+        
+        function mon = setCalibration(mon, calib)
+            mon.calibration = calib;
         end
         
     end %methods
