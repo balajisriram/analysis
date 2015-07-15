@@ -26,27 +26,7 @@ classdef monitor
                     error('no idea how you are calling the monitor');
             end
         end % electrode
-        
-        function out = getDims(s,which)
-            if ~exist('which','var')||isempty(which)
-                which = 1:2;
-            elseif any(which>2|which<1)
-                error('only length and width are available');
-            end
-            out = [s.width s.height];
-            out = out(which);
-        end
-        
-        function out = getPixs(s,which)
-            if ~exist('which','var')||isempty(which)
-                which = 1:2;
-            elseif any(which>2|which<1)
-                error('only length and width are available');
-            end
-            out = [s.xPix s.yPix];
-            out = out(which);
-        end
-        
+
         function mon = setCalibration(mon, calib)
             mon.calibration = calib;
         end
