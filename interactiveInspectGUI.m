@@ -56,6 +56,20 @@ function interactiveInspectGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for interactiveInspectGUI
 disp('will now store data necessary to run GUI');
 switch nargin
+    case 5   % ## new case, pass in all defaults then session and trode index of trode to be analyzed within session.trodes
+        sess = varargin{1};
+        ind = varargin{2};
+        handles.plottingInfo.samplingRate = 30000;
+        handles.anaylsisPath = sess.sessionPath;
+        handles.trodes = sess.trodes;
+        handles.originalSpikeRecord = sess.trodes(ind).spikeWaveForms;
+        handles.currentSpikeRecord = sess.trodes(ind).spikeWaveForms;
+        handles.spikeDetectionParams = sess.trodes(ind).detectParams;
+        handles.originalSpikeDetectionParams = sess.trodes(ind).detectParams;
+        handles.spikeSortingParams = sess.trodes(ind).sortingParams;
+        handles.originalSpikeSortingParams = sess.trodes(ind).sortingParams;
+        handles.originalTrodes = sess.trodes;
+        handles.currTrode = sess.trodes(ind);
     case 7
         handles.analysisPath = varargin{1};
         handles.plottingInfo = varargin{2};
