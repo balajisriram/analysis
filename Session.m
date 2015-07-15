@@ -40,8 +40,8 @@ classdef Session
             assert(isa(mon,'monitor'),'mon is not a monitor');
             sess.monitor = mon;
  
-            assert(isa(rigStat,'rig'),'rigStat is not a rig');
-            sess.rig = rigStat;
+            % ## rigstate not a class so doesnt really make sense - assert(isa(rigStat,'rig'),'rigStat is not a rig');
+            sess.rig = rigState;
             
             sess.sessionID = sprintf('%s_%s',upper(subject),datestr(sess.timeStamp,30));
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
@@ -69,61 +69,21 @@ classdef Session
             session.eventData = eventData(session.trialDataPath);
             
             % 2. get the trodes for the electrode
-            session.trodes = session.electrode.getPotentialTrodes;
+            session.trodes = session.electrode.getPotentialTrodes();
             
             % 3. detect spikes
-            session = session.detectSpikes;
+            session = session.detectSpikes();
             
             % 4. sort spikes
-            session = session.sortSpikes;
-
-                
-                %group spikewaveforms across multiple channels to one extended data set
-                waveformsToCluster = [];
-                spikesClust = [];
-                spikeTimesClust = [];
-                for i = 1:length(spikeWaveforms(1,1,:))
-                    waveformsToCluster = [waveformsToCluster;spikeWaveforms(:,:,i)];
-                    spikesClust = [spikesClust;spikes];
-                    spikeTimesClust = [spikeTimesClust;spikeTimes];
-                end
-
-                % c. cluster grouped spikes
-                [assignedClusters, rankedClusters, spikeModel] = sortSpikesDetected(spikesClust, waveformsToCluster, spikeTimesClust, spikeSortingParams);
-                
-                % d. set units as new found clusters 
-                unitData = {};
-                for i = 1:length(rankedClusters)
-                    clusterWaveforms = {waveformsToCluster(assignedClusters == i,:)};
-                    unitData = [unitData clusterWaveforms];
-                end
-                
-                % so that first unitData set doesnt get combined with empty
-                % cell array. Just for convenience.
-                if firstTime == 1
-                    allGroupsUnitData = unitData;
-                    firstTime = -1;
-                else
-                    allGroupsUnitData = {allGroupsUnitData unitData};
-                end
-            end  
-            
-            spikeData.spikes = allGroupsSpikes;
-            spikeData.spikeWaveforms = allGroupsSpikeWaveforms;
-            spikeData.spikeTimes = allGroupsSpikeTimes;
-            
-            % 4. after goes through all groups, save all information
-            %    into session object
-            session.groupMean = allGroupsMean;
-            session.groupStd = allGroupsStd;
-            session.rawData = allGroupsData;
-            session.rawTimes = allGroupsTimes;
-        
-            session.unitData = allGroupsUnitData;
-            session.eventsData = eventsData;
-            session.spikeData = spikeData;
-            
+            session = session.sortSpikes();
         end      
+        
+        function session = sortSpikes(session)
+            for i = 1:length(session.trodes)
+                session.trodes(i) = session.trodes(i).sortSpikes();
+            end
+        end
+
         
         function session = detectSpikes(session)
             for i = 1:length(session.trodes)
