@@ -1,4 +1,4 @@
-classdef rig
+classdef StandardRigJuly2015<rig
     properties
         rigName
         
@@ -13,16 +13,9 @@ classdef rig
     end
     methods
         %% constructor
-        function s = rig(name, or, h, d, az, ele)
-            s.rigName = name;
-            
-            s.or = or;
-            s.h = h; % in mm
-            s.d = d; % in mm
-            
-            s.azimuth = az;
-            s.elevation = ele;
-        end % rig
+        function s = StandardRigJuly2015()
+            s = s@rig('basPhysiologyRig',0, 0, 120, NaN, NaN);
+        end % StandardRigJuly2015
         
     end %methods
 end % classdef
