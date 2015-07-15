@@ -14,6 +14,8 @@ classdef eventData
         RewL
         RewC
         RewR
+        
+        out
     end
     
     properties (Constant=true)
@@ -46,7 +48,7 @@ classdef eventData
         
         function e = getChannelEvents(e)
             %opens event file, gets info
-            [eventTimes, eventID, eventChannel] = openEvents(fullfile(e.eventFolder,'all_channels.events'));
+            [eventTimes, eventID, eventChannel] = eventData.openEvents(fullfile(e.eventFolder,'all_channels.events'));
             
             whichChans = unique(eventChannel);
             
@@ -95,7 +97,7 @@ classdef eventData
             filetype = filename(max(strfind(filename,'.'))+1:end); % parse filetype
             
             fid = fopen(filename);
-            filesize = getfilesize(fid);
+            filesize = eventData.getfilesize(fid);
             
             % constants
             NUM_HEADER_BYTES = 1024;

@@ -1,39 +1,19 @@
 classdef sortingParam
     properties (GetAccess = public, SetAccess = private)
-        type
-        paramValues
+        method = 'KLUSTAKWIK';
+        minClusters=4;
+        maxClusters=40;  
+        nStarts=1;
+        splitEvery=5; 
+        maxPossibleClusters=50; 
+        featureList = {'tenPCs'};
+        arrangeClustersBy = 'averageAmplitude';         
+        postProcessing= 'biggestAverageAmplitudeCluster'; 
+
     end
     
     methods
-        function s = sortingParam(in)
-            if ~isstruct(in) || ~isfield(in,'method')
-                error('dont have the right input');
-            end
-            s.type = in.method; 
-            switch  s.type
-                case 'KlustaKwik'
-                    s.paramValues.minClusters=in.minClusters;
-                    s.paramValues.maxClusters=in.maxClusters;
-                    s.paramValues.nStarts=in.nStarts; 
-                    s.paramValues.splitEvery=in.splitEvery;
-                    s.paramValues.maxPossibleClusters=in.maxPossibleClusters; 
-                    s.paramValues.featureList = in.featureList;
-                    s.paramValues.arrangeClustersBy = in.arrangeClustersBy; 
-                    s.paramValues.postProcessing= in.postProcessing; 
-                    s.paramValues.model = [];
-                case 'oSort'
-                    s.paramValues.doPostDetectionFiltering=in.doPostDetectionFiltering;
-                    s.paramValues.peakAlignMethod=in.peakAlignMethod; 
-                    s.paramValues.alignParam=in.alignParam; 
-                    s.paramValues.distanceWeightMode=in.distanceWeightMode;
-                    s.paramValues.minClusterSize=in.minClusterSize; 
-                    s.paramValues.maxDistance=in.maxDistance; 
-                    s.paramValues.envelopeSize=in.envelopeSize;
-                case 'useSpikeModelFromPreviousAnalysis'
-                otherwise
-                    error('unsupported spikeSorting method');
-            end
-            
+        function s = sortingParam()
         end
         
         % ident function
@@ -42,6 +22,117 @@ classdef sortingParam
                 tf = true;
             else
                 tf = false;
+            end
+        end
+        
+        function [assignedClusters rankedClusters spikeModel] = sortSpikesDetected(par, spikes, spikeWaveforms, spikeTimestamps, spikeModel)
+            currentDir=pwd;
+            tempDir=fullfile(currentDir,'helpers','KlustaKwik');
+            cd(tempDir);
+            
+            [features, nrDatapoints, spikeModel.featureDetails] = calculateFeatures(spikeWaveforms,par.featureList);
+            
+            fid = fopen('temp.fet.1','w+');
+            fprintf(fid,[num2str(nrDatapoints) '\n']);
+            for k=1:length(spikeTimestamps)
+                fprintf(fid,'%s\n', num2str(features(k,1:nrDatapoints)));
+            end
+            fclose(fid);
+
+            % set which features to use
+            featuresToUse='';
+            for i=1:nrDatapoints
+                featuresToUse=[featuresToUse '1'];
+            end
+            % now run KlustaKwik
+            if ispc
+                cmdStr=['KlustaKwik.exe temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
+                    ' -nStarts ' num2str(par.nStarts) ' -SplitEvery ' num2str(par.splitEvery) ...
+                    ' -MaxPossibleClusters ' num2str(par.maxPossibleClusters) ' -UseFeatures ' featuresToUse ' -Debug ' num2str(0) ];
+            elseif IsLinux
+                cmdStr=['./KKLinux temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
+                    ' -nStarts ' num2str(par.nStarts) ' -SplitEvery ' num2str(par.splitEvery) ...
+                    ' -MaxPossibleClusters ' num2str(par.maxPossibleClusters) ' -UseFeatures ' featuresToUse ' -Debug ' num2str(0) ];
+            elseif ismac
+                cmdStr=['./KKMac temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
+                    ' -nStarts ' num2str(par.nStarts) ' -SplitEvery ' num2str(par.splitEvery) ...
+                    ' -MaxPossibleClusters ' num2str(par.maxPossibleClusters) ' -UseFeatures ' featuresToUse ' -Debug ' num2str(0) ];
+            end
+            system(cmdStr);
+            pause(0.1);
+            % read output temp.clu.1 file
+            try
+                fid = fopen('temp.clu.1');
+                assignedClusters=[];
+                while 1
+                    tline = fgetl(fid);
+                    if ~ischar(tline),   break,   end
+                    assignedClusters = [assignedClusters;str2num(tline)];
+                end
+            catch
+                warning('huh? no .clu?')
+                keyboard
+            end
+
+            % throw away first element of assignedClusters - the first line of the cluster file is the number of clusters found
+            assignedClusters(1)=[];
+            rankedClusters = unique(assignedClusters);
+            rankedClusters(rankedClusters==1)=[];
+            switch par.arrangeClustersBy
+                case 'clusterCount'
+                    clusterCounts=zeros(length(rankedClusters),2);
+                    for i=1:size(clusterCounts,1)
+                        clusterCounts(i,1) = i;
+                        clusterCounts(i,2) = length(find(assignedClusters==rankedClusters(i)));
+                    end
+                    clusterCounts=sortrows(clusterCounts,-2);
+                    rankedClusters=rankedClusters(clusterCounts(:,1));
+                case 'averageAmplitude'
+                    clusterAmplitude=zeros(length(rankedClusters),2);
+                    for i=1:size(clusterAmplitude,1)
+                        clusterAmplitude(i,1) = i;
+                        clusterAmplitude(i,2) = diff(minmax(mean(spikeWaveforms(assignedClusters==rankedClusters(i)),1)));
+                    end
+                    clusterAmplitude=sortrows(clusterAmplitude,-2);
+                    rankedClusters=rankedClusters(clusterAmplitude(:,1));
+                case 'averageSpikeWidth'
+                    clusterSpikeWidth=zeros(length(rankedClusters),2);
+                    for i=1:size(clusterSpikeWidth,1)
+                        clusterSpikeWidth(i,1) = i;
+                        avgWaveform = mean(spikeWaveforms(assignedClusters==rankedClusters(i)),1);
+                        [junk, minInd] = min(avgWaveform);
+                        [junk, maxInd] = max(avgWaveform);
+                        clusterSpikeWidth(i,2) = abs(minInd-maxInd);
+                    end
+                    clusterSpikeWidth=sortrows(clusterSpikeWidth,-2);
+                    rankedClusters=rankedClusters(clusterSpikeWidth(:,1));
+                case 'spikeWaveformStdDev'
+                    clusterStdDev=zeros(length(rankedClusters),2);
+                    for i=1:size(clusterStdDev,1)
+                        clusterStdDev(i,1) = i;
+                        clusterStdDev(i,2) = mean(std(spikeWaveforms(assignedClusters==rankedClusters(i)),1));
+                    end
+                    clusterStdDev=sortrows(clusterStdDev,2); %ascending 
+                    rankedClusters=rankedClusters(clusterStdDev(:,1));
+                otherwise
+                    error('unknown arrangeClusterBy method')
+            end
+            rankedClusters(end+1) = 1;
+            fclose(fid);
+
+            % create the model files from the model file
+            modelFilePath = fullfile(tempDir,'temp.model.1');
+            spikeModel.clusteringModel = klustaModelTextToStruct(modelFilePath);
+            spikeModel.clusteringMethod = 'KlustaKwik';
+            spikeModel.featureList = par.featureList;
+
+
+            % change back to original directory
+            cd(currentDir);
+
+            if 0
+                kk=klustaModelTextToStruct(fullfile(analysisPath,'temp.model.1'));
+                myAssign=clusterFeaturesWithKlustaModel(kk,features,'mvnpdf',assignedClusters) % plot verification
             end
         end
     end

@@ -2,6 +2,7 @@ classdef filteredThreshold < spikeDetectionParam
     
     properties
         freqLowHi = [200 10000]
+        minmaxVolts
         thresholdVolts
         waveformWindowMs = 1.5
         peakWindowMs = 0.6
@@ -9,7 +10,10 @@ classdef filteredThreshold < spikeDetectionParam
         peakAlignment = 'filtered'
         returnedSpikes = 'filtered'
         lockoutDurMs = 0.1
-        thresholdMethod = 'raw'
+        thresholdMethod = 'std'
+        ISIviolationMS = 1
+        method = 'filteredThresh'
+        samplingFreq = 30000;
     end
     
     methods 
@@ -33,27 +37,157 @@ classdef filteredThreshold < spikeDetectionParam
                     out.thresholdVolts = varargin{2};
                 case 3
                     out.thresholdVolts = varargin{2};
-                    p = varargin{3};
-                    out.freqLowHi = p.freqLowHi;
-                    out.waveformWindowMs = p.waveformWindowMs;
-                    out.peakWindowMs = p.peakWindowMs;
-                    out.alignMethod = p.alignMethod;
-                    out.peakAlignment = p.peakAlignment;
-                    out.returnedSpikes = p.returnedSpikes;
-                    out.lockoutDurMs = p.lockoutDurMs;
-                    out.thresholdMethod = p.thresholdMethod;
+                    out.thresholdMethod = varargin{3};
             end
         end
         
         function par = setupAndValidateParams(par,varargin)
-            switch uppser(par.thresholdMethod)
+            switch upper(par.thresholdMethod)
                 case 'RAW'
-                    if nargin == 2
+                    disp('doing nothing')
                 case 'STD'
+                    if nargin==2
+                        means = varargin{1}(1,:);
+                        stds =  varargin{1}(2,:);
+                        thrV = par.thresholdVolts;
+                        
+                        par.thresholdVolts = [means-thrV.*stds;means+thrV.*stds];
+                    end
+                    
             end
         end
         
-        function [spikes, spikeWaveforms, spikeTimestamps] = detectSpikesFromNeuralData(par)
+        function [spikes, spikeWaveforms, spikeTimestamps] = detectSpikesFromNeuralData(par, neuralData, neuralDataTimes)
+            loThresh = par.thresholdVolts(1,:);
+            hiThresh = par.thresholdVolts(2,:);
+            
+           
+            N=round(min(par.samplingFreq/200,floor(size(neuralData,1)/3)));
+            [b,a]=fir1(N,2*par.freqLowHi/par.samplingFreq);
+            if 3*max(length(b),length(a))>size(neuralData,1)
+                warning('neuralData is not long enough to filter. going to return empty stuff');
+                spikes = [];
+                spikeWaveforms = [];
+                spikeTimestamps = [];
+                return;
+            end
+            filteredSignal=filtfilt(b,a,neuralData);
+            
+            
+            spkBeforeAfterMS=[par.peakWindowMs par.waveformWindowMs-par.peakWindowMs];
+            spkSampsBeforeAfter=round(par.samplingFreq*spkBeforeAfterMS/1000);
+            
+            
+            % find spike events
+            tops = [];
+            bottoms = [];
+            topAmountAllChan = [];
+            botAmountAllChan = [];
+            for i = 1:size(neuralData,2)
+                top = find([false; diff(filteredSignal(:,i)>hiThresh(i))>0]);
+                bottom = find([false; diff(filteredSignal(:,i)<loThresh(i))>0]);
+                topAmountAllChan = [topAmountAllChan length(top)];
+                botAmountAllChan = [botAmountAllChan length(bottom)];   % ## makes matrix that keeps track of how many times threshold
+                tops = [tops;top];                                      %    is crossed per channel.
+                bottoms = [bottoms;bottom];
+            end
+            
+            [tops,    uTops,    topTimes]   =filteredThreshold.extractPeakAligned(tops,1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, topAmountAllChan);
+            [bottoms, uBottoms, bottomTimes]=filteredThreshold.extractPeakAligned(bottoms,-1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, botAmountAllChan);
+            
+            
+            %maybe sort the order...
+            spikes=[topTimes;bottomTimes];
+            spikeWaveforms=[tops;bottoms];
+            [spikes, sortInds]=sort(spikes);
+            spikeWaveforms=spikeWaveforms(sortInds,:,:);
+            
+%             voltageTooExtreme= any(spikeWaveforms(:,:,1)'<par.minmaxVolts(1)) | any(spikeWaveforms(:,:,1)'>par.minmaxVolts(2));
+%             spikes(voltageTooExtreme)=[];                     % ## NOTE: only checks first channel for voltageTooExtreme for now because it never happened in any test
+%             spikeWaveforms(voltageTooExtreme,:)=[];           %          sets before.
+            
+            spikeTimestamps=neuralDataTimes(spikes, 1);
+            
+            % organize the spikes in order of time.
+            [spikeTimestamps, reorderedInds]=sort(spikeTimestamps);  % also get the reorderedInds from this
+            spikeWaveforms=spikeWaveforms(reorderedInds,:,:);
+            spikes = spikes(reorderedInds);
+            
+            % support for lockout
+            if par.lockoutDurMs>0  % ## NOTE: changing order of channels sometimes can slightly change # of spikes blocked
+                blocked=find(diff([0; spikeTimestamps])<par.lockoutDurMs/1000);
+                spikes(blocked) = [];
+                spikeTimestamps(blocked)=[];
+                spikeWaveforms(blocked,:,:)=[]; % check dimentions
+            end
+            
+            if length(spikes)~=length(unique(spikes))
+                warning('duplicate spikes detected');
+            end
+            
+            
+        end
+    end
+    
+    methods (Static=true)
+        function [group uGroup groupPts]=extractPeakAligned(group,flip,sampRate,spkSampsBeforeAfter,filt,data, fromChannel)
+            maxMSforPeakAfterThreshCrossing=.5; %this is equivalent to a lockout, because all peaks closer than this will be called one peak, so you'd miss IFI's smaller than this.
+            % we should check for this by checking if we said there were multiple spikes at the same time.
+            % but note this is ONLY a consequence of peak alignment!  if aligned on thresh crossings, no lockout necessary (tho high frequency noise riding on the spike can cause it
+            % to cross threshold multiple times, causing you to count it multiple times w/timeshift).
+            % our remaining problem is if the decaying portion of the spike has high freq noise that causes it to recross thresh and get counted again, so need to look in past to see
+            % if we are on the tail of a previous spk -- but this should get clustered away anyway because there's no spike-like peak in the immediate period following the crossing.
+            % ie the peak is in the past, so it's a different shape, therefore a different cluster
+            maxPeakSamps=round(sampRate*maxMSforPeakAfterThreshCrossing/1000);
+            
+            spkLength=sum(spkSampsBeforeAfter)+1;
+            spkPts=[-spkSampsBeforeAfter(1):spkSampsBeforeAfter(2)];
+            %spkPts=(1:spkLength)-ceil(spkLength/2); % centered
+            
+            groupPts=group((group+spkLength-1)<length(filt) & group-ceil(spkLength/2)>0);
+            
+            % this is ugly. but works. computationally identical.
+            if length(groupPts) ==1
+                group = data(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1));
+                group = group';
+                [junk loc]=max(flip*group,[],2);
+                groupPts=((loc-1)+groupPts);
+                groupPts=groupPts((groupPts+floor(spkLength/2))<length(filt));
+                group= filt(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));group = group';
+                uGroup=data(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));uGroup = uGroup';
+                uGroup=uGroup-repmat(mean(uGroup,2),1,spkLength);
+            elseif length(groupPts) ==0
+                group =[];
+                uGroup =[];
+                groupPts=[];
+            else
+                % this code does not guarantee against multiple threshold crossings
+                % within the same region of interest. specify a
+                % par.lockoutDurMS to later filter them out!
+                group = [];
+                start = 1;
+                for i =  1:size(data,2)   % ## goes through and builds group by iterating through channel data 1 at a time.
+                    dat = data(:,i);
+                    g=dat(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1)); %use (sharper) unfiltered peaks!
+                    finish = (start+fromChannel(i)) - 1;
+                    for k = start:finish
+                        [junk, loc]=max(flip*g,[],2); % gets max point in size 15 sample
+                        groupPts(k)=((loc(k)-1)+groupPts(k));     % set group points to new peaks found
+                        groupPts=groupPts((groupPts+floor(spkLength/2))<length(filt));
+                    end
+                    start = finish;
+                end
+                for i =  1:size(data,2)     % ## after groupPts is centered on peak for specific channel spike was found cycle through
+                    fil = filt(:,i);        %    all channels again and extract data surrounding peak.
+                    g= fil(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1)); % replaces group with new full filtered data (group is what turns into "spikes" must focus on these).
+                    group = cat(3,group,g);
+                    uGroup=data(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1)); %ugroup does same but for unfiltered data
+                    uGroup=uGroup-repmat(mean(uGroup,2),1,spkLength);
+                end
+            end
+            % just gonna try with the filtered spikes
+            % group=filt(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1)); %use (sharper) unfiltered peaks!
+            
         end
     end
     
