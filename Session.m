@@ -47,15 +47,17 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
-        function session = process(session)            %
+        function session = process(session)            
             % 1. get events data (##pass in correct file)
             session.eventData = eventData(session.trialDataPath);
             
             % 2. get the trodes for the electrode
-            session.trodes = session.electrode.getPotentialTrodes();
+            session.trodes = session.electrode.getPotentialTrodes(session.sessionPath,session.sessionFolder);
             
             % 3. detect spikes
+            disp('Detecting Spikes ... ');
             session = session.detectSpikes();
+            
             
             % 4. sort spikes
             session = session.sortSpikes();
