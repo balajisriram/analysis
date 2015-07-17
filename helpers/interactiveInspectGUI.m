@@ -56,106 +56,9 @@ function interactiveInspectGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for interactiveInspectGUI
 disp('will now store data necessary to run GUI');
 switch nargin
-    case 5   % ## new case, pass in all defaults then session and trode index of trode to be analyzed within session.trodes
-        sess = varargin{1};
-        ind = varargin{2};
-        handles.plottingInfo.samplingRate = 30000;
-        handles.anaylsisPath = sess.sessionPath;
-        handles.trodes = sess.trodes;
-        handles.originalSpikeRecord = sess.trodes(ind).spikeWaveForms;
-        handles.currentSpikeRecord = sess.trodes(ind).spikeWaveForms;
-        handles.spikeDetectionParams = sess.trodes(ind).detectParams;
-        handles.originalSpikeDetectionParams = sess.trodes(ind).detectParams;
-        handles.spikeSortingParams = sess.trodes(ind).sortingParams;
-        handles.originalSpikeSortingParams = sess.trodes(ind).sortingParams;
-        handles.originalTrodes = sess.trodes;
-        handles.currTrode = sess.trodes(ind);
-    case 7
-        handles.analysisPath = varargin{1};
-        handles.plottingInfo = varargin{2};
-        handles.trodes = varargin{3};
-        handles.originalSpikeRecord = varargin{4};
-        handles.currentSpikeRecord = varargin{4}; % no changes have taken place
-        % lets get the other stuff we need!
-        handles.analysisBoundaryFile = fullfile(handles.analysisPath,'analysisBoundary.mat');
-        temp = stochasticLoad(handles.analysisBoundaryFile,{'spikeDetectionParams','spikeSortingParams','trodes'},5);
-        if isfield(temp,'spikeDetectionParams')
-            handles.spikeDetectionParams = temp.spikeDetectionParams;
-            handles.originalSpikeDetectionParams = temp.spikeDetectionParams;
-        else
-            error('interactiveInspectGUI:unableToReachAnalysisFolder','spikeDetectionParams is not available');
-        end
-        if isfield(temp,'spikeSortingParams')
-            handles.spikeSortingParams = temp.spikeSortingParams;
-            handles.originalSpikeSortingParams = temp.spikeSortingParams;
-        else
-            error('interactiveInspectGUI:unableToReachAnalysisFolder','spikeSortingParams is not available');
-        end
-        % trodes is special!
-        if ~isfield(handles,'trodes')||isempty(handles.trodes)
-            if isfield(temp,'trodes')&&~isempty(temp.trodes)
-                handles.trodes = temp.trodes;
-            else
-                error('trodes is empty everywhere!!');
-            end
-        end
-        handles.originalTrodes = temp.trodes;
-        handles.currTrode = createTrodeName(handles.trodes{1});
-    case 4
-        handles.analysisPath = varargin{1};
-        handles.plottingInfo.samplingRate = 40000;
-        spikeRecordFile = fullfile(handles.analysisPath,'spikeRecord.mat');
-        analysisBoundaryFile = fullfile(handles.analysisPath,'analysisBoundary.mat');
-        temp = stochasticLoad(spikeRecordFile,{'spikeRecord'},5);
-        if isfield(temp,'spikeRecord')
-            handles.originalSpikeRecord = temp.spikeRecord;
-            handles.currentSpikeRecord = temp.spikeRecord;
-        else
-            error('here');
-        end
-        
-        temp = stochasticLoad(analysisBoundaryFile,{'spikeDetectionParams','spikeSortingParams','trodes'},5);
-        if isfield(temp,'spikeDetectionParams')&&isfield(temp,'spikeSortingParams')&&isfield(temp,'trodes')
-            handles.spikeDetectionParams = temp.spikeDetectionParams;
-            handles.originalSpikeDetectionParams = temp.spikeDetectionParams;
-            handles.spikeSortingParams = temp.spikeSortingParams;
-            handles.originalSpikeSortingParams = temp.spikeSortingParams;
-            handles.trodes = temp.trodes;
-            handles.originalTrodes = temp.trodes;
-            handles.currTrode = createTrodeName(handles.trodes{1});
-        else
-            error('here');
-        end
-    case 3
-        warning('interactiveInspectGUI:testingModeOnly','only use this mode for testing');
-        error('interactiveInspectGUI:testingModeRemoved','interactiveInspect does not use testing mode anymore');
-        %         currPath = fileparts(mfilename('fullpath'));
-        %         analysisPath = fullfile(currPath,'sampleData');
-        %         handle.analysisPath = analysisPath;
-        %         spikeRecordFile = fullfile(analysisPath,'spikeRecord.mat');
-        %         analysisBoundaryFile = fullfile(analysisPath,'analysisBoundary.mat');
-        %         temp = stochasticLoad(spikeRecordFile,{'spikeRecord'},5);
-        %         if isfield(temp,'spikeRecord')
-        %             handles.originalSpikeRecord = temp.spikeRecord;
-        %             handles.currentSpikeRecord = temp.spikeRecord;
-        %         else
-        %             error('here');
-        %         end
-        %
-        %         temp = stochasticLoad(analysisBoundaryFile,{'spikeDetectionParams','spikeSortingParams','trodes'},5);
-        %         if isfield(temp,'spikeDetectionParams')&&isfield(temp,'spikeSortingParams')&&isfield(temp,'trodes')
-        %             handles.spikeDetectionParams = temp.spikeDetectionParams;
-        %             handles.originalSpikeDetectionParams = temp.spikeDetectionParams;
-        %             handles.spikeSortingParams = temp.spikeSortingParams;
-        %             handles.originalSpikeSortingParams = temp.spikeSortingParams;
-        %             handles.trodes = temp.trodes;
-        %             handles.originalTrodes = temp.trodes;
-        %             handles.currTrode = createTrodeName(handles.trodes{1});
-        %         else
-        %             error('here');
-        %         end
-        %         handles.plottingInfo.samplingRate = 40000;
-    otherwise
+    case 1   % ## new case, pass in all defaults then session and trode index of trode to be analyzed within session.trodes
+        handles.trode = varargin{1};
+     otherwise
         error('why do you call this GUI in this weird way???');
 end
 % some special functions for the ISI plot
@@ -163,9 +66,6 @@ set(handles.hist10MSAxis,'ButtonDownFcn',{@hist10MSAxis_ButtonDownFcn, handles})
 
 % Update handles structure
 guidata(hObject, handles);
-
-%initialize the trodesMenu
-trodesMenu_Initialize(hObject, eventdata, handles);
 
 % fill up the clusters panel
 clusterListPanel_Initialize(hObject, eventdata, handles);
@@ -185,7 +85,7 @@ function varargout = interactiveInspectGUI_OutputFcn(hObject, eventdata, handles
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-varargout{1} = hObject;
+varargout{1} = handles.trode;
 % Get default command line output from handles structure
 % varargout{1} = handles.spikeSortingParams;
 % varargout{2} = handles.currentSpikeRecord;
@@ -204,7 +104,6 @@ function featureAxis_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to featureAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-text(1,1,'choose trode','HorizontalAlignment','right','VerticalAlignment','Top');
 % Hint: place code in OpeningFcn to populate featureAxis
 end
 % waveAxis
@@ -213,7 +112,6 @@ function waveAxis_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to waveAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-text(1,1,'choose trode','HorizontalAlignment','right','VerticalAlignment','Top');
 % Hint: place code in OpeningFcn to populate waveAxis
 end
 % waveMeansAxis
@@ -222,7 +120,6 @@ function waveMeansAxis_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to waveMeansAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-text(1,1,'choose trode','HorizontalAlignment','right','VerticalAlignment','Top');
 % Hint: place code in OpeningFcn to populate waveMeansAxis
 end
 % hist10MSAxis
@@ -231,7 +128,6 @@ function hist10MSAxis_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to hist10MSAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-text(1,1,'choose trode','HorizontalAlignment','right','VerticalAlignment','Top');
 end
 % hist10000MSAxis
 % --- Executes during object creation, after setting all properties.
@@ -239,7 +135,6 @@ function hist10000MSAxis_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to hist10000MSAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-text(1,1,'choose trode','HorizontalAlignment','right','VerticalAlignment','Top');
 end
 % trodesMenu
 % --- Executes during object creation, after setting all properties.
@@ -250,9 +145,6 @@ function trodesMenu_CreateFcn(hObject, eventdata, handles)
 
 % Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
 end
 % firingRateAxis
 % --- Executes during object creation, after setting all properties.
@@ -260,7 +152,6 @@ function firingRateAxis_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to firingRateAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-text(1,1,'choose trode','HorizontalAlignment','right','VerticalAlignment','Top');
 % Hint: place code in OpeningFcn to populate firingRateAxis
 end
 % --- Executes during object creation, after setting all properties.
@@ -285,9 +176,7 @@ function sortingMethodMenu_CreateFcn(hObject, eventdata, handles)
 
 % Hint: popupmenu controls usually have a white background on Windows.
 %       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
+
 end
 % --- Executes during object creation, after setting all properties.
 %barChartWhole
@@ -324,141 +213,124 @@ barChartPart_UpdateFcn(hObject, eventdata, handles);
 end
 % featureAxis
 function featureAxis_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-
 % go to the axis
 axes(handles.featureAxis);cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handles.trode.spikeEvents)
+    text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 % get the feature values
-[features nDim] = useFeatures(spikeWaveforms,spikeModel.featureList,spikeModel.featureDetails);
+[features nDim] = useFeatures(handle.trode.spikeWaveForms,handle.trode.spikeModel.featureList,handle.trode.spikeModel.featureDetails);
 
 
 
 % choose color scheme
-colors=getClusterColorValues(handles,rankedClusters);
-% colors(1,:) = [1 0 0]; % red
+colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
 
 
 % loop through clusters and plot features
-for i=1:length(rankedClusters)
-    thisCluster=find(assignedClusters==rankedClusters(i));
+for i=1:length(handle.trode.spikeRankedCluster)
+    thisCluster=find(handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
     if ~isempty(thisCluster)&&clusterVisibilityValues(i)
-        if i==1
-            markerType = '*';
-        else
-            markerType = '.';
-        end
+        markerType = '.';
         plot3(features(thisCluster,1),features(thisCluster,2),features(thisCluster,3),markerType,'color',colors(i,:));
         axis([min(features(:,1)) max(features(:,1)) min(features(:,2)) max(features(:,2)) min(features(:,3)) max(features(:,3))]);
         colorStr = sprintf('\\color[rgb]{%f %f %f}',colors(i,1),colors(i,2),colors(i,3));
-        text(max(features(:,1)),max(features(:,2))-0.1*max(features(:,2))*(i-1),0,sprintf('%s%d:%d spikes',colorStr,rankedClusters(i),length(thisCluster)),'HorizontalAlignment','right','VerticalAlignment','top');
+        text(max(features(:,1)),max(features(:,2))-0.1*max(features(:,2))*(i-1),0,sprintf('%s%d:%d spikes',colorStr,handle.trode.spikeRankedCluster(i),length(thisCluster)),'HorizontalAlignment','right','VerticalAlignment','top');
     end
     
 end
 end
+
 % waveAxis
 function waveAxis_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-
-
 % select the axis
 axes(handles.waveAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handles.trodes.spikeEvents)
+    text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 
 % choose color scheme
-colors=getClusterColorValues(handles,rankedClusters);
+colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; % red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
 
 
 
 % now plot
-for i=1:length(rankedClusters)
-    thisCluster=find(assignedClusters==rankedClusters(i));
+for i=1:length(handle.trode.spikeRankedCluster)
+    thisCluster=find(handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
     if ~isempty(thisCluster) && clusterVisibilityValues(i)
-        plot(spikeWaveforms(thisCluster,:)','color',colors(i,:));
+        plot(handle.trode.spikeWaveforms(thisCluster,:)','color',colors(i,:));
     end
 end
 
 title('waveforms');
 set(gca,'XTick',[]);
-axis([1 size(spikeWaveforms,2)  1.1*minmax(spikeWaveforms(:)') ])
+axis([1 size(handle.trode.spikeWaveforms,2)  1.1*minmax(handle.trode.spikeWaveforms(:)') ])
 end
+
+
 % waveMeansAxis
 function waveMeansAxis_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-
-
 % select the axis
 axes(handles.waveMeansAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handle.trode.spikeEvents)
+    text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 
 % choose color scheme
-colors=getClusterColorValues(handles,rankedClusters);
+colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; % red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
 
 
-for i=1:length(rankedClusters)
-    thisCluster=find(assignedClusters==rankedClusters(i));
+for i=1:length(handle.trode.spikeRankedCluster)
+    thisCluster=find(handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
     if ~isempty(thisCluster)&& clusterVisibilityValues(i)
-        meanWave = mean(spikeWaveforms(thisCluster,:),1);
-        stdWave = std(spikeWaveforms(thisCluster,:),1);
+        meanWave = mean(handle.trode.spikeWaveForms(thisCluster,:),1);
+        stdWave = std(handle.trode.spikeWaveForms(thisCluster,:),1);
         plot(meanWave','color',colors(i,:),'LineWidth',2);
-        lengthOfWaveform = size(spikeWaveforms,2);
+        lengthOfWaveform = size(handle.trode.spikeWaveForms,2);
         fillWave = fill([1:lengthOfWaveform fliplr(1:lengthOfWaveform)]',[meanWave+stdWave fliplr(meanWave-stdWave)]',colors(i,:));set(fillWave,'edgeAlpha',0,'faceAlpha',.2);
     end
 end
 set(gca,'XTick',[1 25 61],'XTickLabel',{sprintf('%2.2f',-24000/handles.plottingInfo.samplingRate),'0',sprintf('%2.2f',36000/handles.plottingInfo.samplingRate)});xlabel('ms');
 end
+
+
 % hist10MSAxis
 function hist10MSAxis_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
 
 % select the axis
 axes(handles.hist10MSAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handle.trode.spikeEvents)
+    text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 % set the colors
-colors=getClusterColorValues(handles,rankedClusters);
+colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; %red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
 
 
 %inter-spike interval distribution
@@ -467,15 +339,10 @@ existISILess10MS = false;
 maxEdgePart = 0;
 maxProbPart = 0;
 % for other spikes
-for i = 1:length(rankedClusters)
+for i = 1:length(handle.trode.spikeRankedCluster)
     if clusterVisibilityValues(i)
-        thisCluster = (assignedClusters==rankedClusters(i));
-        ISIThisCluster = [];
-        for currTrialNum = 1:length(trialNums)
-            whichThisTrialThisCluster = (trialNumForSpikes==trialNums(currTrialNum))&thisCluster;
-            spikeTimeStampsThisTrialThisCluster = spikeTimestamps(whichThisTrialThisCluster);
-            ISIThisCluster = [ISIThisCluster; diff(spikeTimeStampsThisTrialThisCluster*1000)];
-        end
+        thisCluster = (handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
+        ISIThisCluster = diff(handle.trode.spikeTimeStamps(thisCluster));
         
         % part
         edges = linspace(0,10,100);
@@ -493,7 +360,7 @@ end
 if existISILess10MS
     axis([0 maxEdgePart 0 maxProbPart]);
     text(maxEdgePart/2,maxProbPart,'ISI<10ms','HorizontalAlignment','center','VerticalAlignment','Top')
-    lockout=1000*39/handles.plottingInfo.samplingRate;  %why is there a algorithm-imposed minimum ISI?  i think it is line 65  detectSpikes
+    lockout=1000*39/handles.trode.detectionParam.samplingFreq;  %why is there a algorithm-imposed minimum ISI?  i think it is line 65  detectSpikes
     lockout=edges(max(find(edges<=lockout)));
     plot([lockout lockout],get(gca,'YLim'),'k') %
     plot([2 2], get(gca,'YLim'),'k--')
@@ -502,45 +369,36 @@ else
     text(10,1,'no ISI < 10 ms','HorizontalAlignment','right','VerticalAlignment','Top');
 end
 end
+
 % hist10000MSAxis
 function hist10000MSAxis_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-
 % select the axis
 axes(handles.hist10000MSAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handle.trode.spikeEvents)
+    text(0.5,0.5,'no spikes introde','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 
 
 % set the colors
-colors=getClusterColorValues(handles,rankedClusters);
+colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; %red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
 
 
 %inter-spike interval distribution
-trialNums = unique(trialNumForSpikes);
 existISILess10000MS = false;
 maxEdgeTot = 0;
 maxProbTot = 0;
 % for other spikes
-for i = 1:length(rankedClusters)
+for i = 1:length(handle.trode.spikeRankedCluster)
     if clusterVisibilityValues(i)
-        thisCluster = (assignedClusters==rankedClusters(i));
-        ISIThisCluster = [];
-        for currTrialNum = 1:length(trialNums)
-            whichThisTrialThisCluster = (trialNumForSpikes==trialNums(currTrialNum))&thisCluster;
-            spikeTimeStampsThisTrialThisCluster = spikeTimestamps(whichThisTrialThisCluster);
-            ISIThisCluster = [ISIThisCluster; diff(spikeTimeStampsThisTrialThisCluster*1000)];
-        end
+        thisCluster = (handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
+        ISIThisCluster = diff(handle.trode.spikeTimeStamps(thisCluster));
         
         % total
         edges = linspace(0,10000,100);
@@ -564,14 +422,10 @@ else
     text(10000,1,'no ISI < 10 s','HorizontalAlignment','right','VerticalAlignment','Top');
 end
 end
+
+
 % firingRateAxis
 function firingRateAxis_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-trialNumsForChunks = handles.currentSpikeRecord.trialNum;
-chunkDurationForChunks = handles.currentSpikeRecord.chunkDuration;
-trialStartTimeForChunks = handles.currentSpikeRecord.trialStartTime;
 
 % select the axis
 axes(handles.firingRateAxis); cla; hold on;
@@ -1341,30 +1195,27 @@ else
     rankedClusters = rankedClustersCell;
 end
 end
+
+
 function clusterVisibilityValues = getClusterVisibilityValues(handles,rankedClusters)
 clusterVisibilityValues = [];
 clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
 clusterVisibilityValuesUnordered = get(get(handles.clusterListPanel,'Children'),'Value');
 for i = 1:length(rankedClusters)
-    %if length(rankedClusters)~=1
-        index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
-        clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
-%     else
-%         keyboard
-%         clusterVisibilityValues = clusterVisibilityValuesUnordered;
-%     end
+    index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
+    clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
+
 end
 end
+
+
 function clusterColorValues = getClusterColorValues(handles,rankedClusters)
 clusterColorValues = nan(length(rankedClusters),3);
 clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
 clusterColorValuesUnordered = get(get(handles.clusterListPanel,'Children'),'ForeGroundColor');
 for i = 1:length(rankedClusters)
-%     if length(rankedClusters)~=1
         index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
         clusterColorValues(i,:) = clusterColorValuesUnordered{index};
-%     else
-%         clusterColorValues = clusterColorValuesUnordered;
-%     end
+
 end
 end
