@@ -12,32 +12,38 @@ classdef KlustaKwik <spikeSortingParam
     end
     
     methods
-        function s = KlustaKwik(varargin)
+        function s = KlustaKwik(paramName,varargin)
+            s = s@spikeSortingParam(paramName);
             switch nargin
                 case 1
                     switch varargin{1}
-                        case 'standard'
-                            
+                        case 'KlustaKwikStandard'
+                            s.minClusters = 4;
+                            s.maxClusters = 40;
+                            s.nStarts = 1;
+                            s.splitEvery = 5;
+                            s.maxPossibleClusters = 50;
+                            s.featureList = {'tenPCs'};
+                            s.arrangeClustersBy = 'averageAmplitude';
+                            s.postProcessing ='biggestAverageAmplitudeCluster';
                         otherwise
                             error('unkonwn Klustakwik params')
                     end
                 case 2
-                    s = s@spikeSortingParam(varargin{1});
                     param = varargin{2};
-                    
+                    s.minClusters = param.minClusters;
+                    s.maxClusters = param.maxClusters;
+                    s.nStarts = param.nStarts;
+                    s.splitEvery = param.splitEvery;
+                    s.maxPossibleClusters = param.maxPossibleClusters;
+                    s.featureList = param.featureList;
+                    s.arrangeClustersBy = param.arrangeClustersBy;
+                    s.postProcessing =param.postProcessing;
             end
         end
         
-        % ident function
-        function tf = eq(a,b)
-            if strcmp(a.method,b.method) && isequal(a.paramValues,b.paramValues)
-                tf = true;
-            else
-                tf = false;
-            end
-        end
-        
-        function [assignedClusters rankedClusters spikeModel] = sortSpikesDetected(par, spikes, spikeWaveforms, spikeTimestamps, spikeModel)
+       
+        function [assignedClusters, rankedClusters, spikeModel] = sortSpikesDetected(par, spikeWaveforms, spikeTimestamps, spikeModel)
             currentDir=pwd;
             tempDir=fullfile(currentDir,'helpers','KlustaKwik');
             cd(tempDir);

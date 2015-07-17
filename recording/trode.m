@@ -38,7 +38,7 @@ classdef trode
             tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(5,1,length(chans)),'std');
             
             % set standard sorting params here
-            tr.sortingParams = sortingParam(); % ## StandardKlustaKwik
+            tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik
             
         end %trode  
         
@@ -78,18 +78,12 @@ classdef trode
         function tr = sortSpikes(tr)
             tr.spikeAssignedCluster = [];
             tr.spikeRankedCluster = [];
-            
-            %tr.sortingParams = sortingParam(); % ## moved to constructor
-            tr.waveformsToCluster = reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans));
 
-            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.spikeModel] = tr.sortingParams.sortSpikesDetected(tr.spikeEvents, tr.waveformsToCluster, tr.spikeTimeStamps);
-            
-            tr.clusteredSpikes = {};
-            for i = 1:length(tr.spikeRankedCluster)
-                cluster = [];
-                cluster = tr.waveformsToCluster(tr.spikeAssignedCluster==tr.spikeRankedCluster(i), :);
-                tr.clusteredSpikes = [tr.clusteredSpikes cluster];
-            end
+            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.spikeModel] = tr.sortingParams.sortSpikesDetected(tr.spikeEvents, ...
+                reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans)), tr.spikeTimeStamps);           
+        end
+        
+        function tr = inspectSpikes(tr)
             
         end
         
