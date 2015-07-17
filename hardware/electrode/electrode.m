@@ -12,9 +12,9 @@ classdef electrode
         end % electrode
         
         %% getPotentialTrodes (returns which channels to group together).
-        function trodes = getPotentialTrodes(etrode)
+        function trodes = getPotentialTrodes(etrode,path,folder)
             warning('ideally should be set by the subclass. using defaults here');
-            trodes =  getIndividualChannelsAsTrodes(etrode); % ## added group 
+            trodes =  getIndividualChannelsAsTrodes(etrode,path,folder); % ## added group 
         end
         
         function trodes = getIndividualChannelsAsTrodes(etrode)

@@ -35,7 +35,7 @@ classdef trode
             % ## not sure this is correct error check - assert(isnumeric(chans),'chans is not a numeric array')
             tr.chans = chans;
             % this stuff is hard coded. but thats okay.
-            tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(10,1,length(chans)),'std');
+            tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(5,1,length(chans)),'std');
             
             % set standard sorting params here
             tr.sortingParams = sortingParam(); % ## StandardKlustaKwik
@@ -48,11 +48,12 @@ classdef trode
             tr.Mean = [];
             tr.Std = [];
             for i = 1:length(tr.chans)
+                
                 a = dir(fullfile(dataPath,sprintf('*_CH%d.continuous',tr.chans(i))));
                 if length(a)>1
                     error('too many records');
                 else
-                    [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data(a.name);
+                    [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data([dataPath,'\',a.name]);
                     if any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation)
                         error('bad timestamps! why?');
                     end
