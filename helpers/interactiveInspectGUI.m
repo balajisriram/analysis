@@ -35,7 +35,6 @@ gui_State = struct('gui_Name',       mfilename, ...
 if nargin && ischar(varargin{1}) && isempty(strfind(varargin{1},'datanetOutput'))
     gui_State.gui_Callback = str2func(varargin{1});
 end
-
 if nargout
     [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
 else
@@ -56,9 +55,9 @@ function interactiveInspectGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for interactiveInspectGUI
 disp('will now store data necessary to run GUI');
 switch nargin
-    case 1   % ## new case, pass in all defaults then session and trode index of trode to be analyzed within session.trodes
+    case 4   % ## new case, pass in all defaults then session and trode index of trode to be analyzed within session.trodes
         handles.trode = varargin{1};
-     otherwise
+    otherwise
         error('why do you call this GUI in this weird way???');
 end
 % some special functions for the ISI plot
@@ -223,25 +222,30 @@ if isempty(handles.trode.spikeEvents)
 end
 
 % get the feature values
-[features nDim] = useFeatures(handle.trode.spikeWaveForms,handle.trode.spikeModel.featureList,handle.trode.spikeModel.featureDetails);
 
+sizSpikeWvFrm = size(handles.trode.spikeWaveForms);
 
+if length(sizSpikeWvFrm)==3
+    [features nDim] = useFeatures(reshape(handles.trode.spikeWaveForms,sizSpikeWvFrm(1),sizSpikeWvFrm(2)*sizSpikeWvFrm(3)),handles.trode.spikeModel.featureList,handles.trode.spikeModel.featureDetails);
+else
+    [features nDim] = useFeatures(handles.trode.spikeWaveForms,handles.trode.spikeModel.featureList,handles.trode.spikeModel.featureDetails);
+end
 
 % choose color scheme
-colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
 
 % loop through clusters and plot features
-for i=1:length(handle.trode.spikeRankedCluster)
-    thisCluster=find(handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
+for i=1:length(handles.trode.spikeRankedCluster)
+    thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
     if ~isempty(thisCluster)&&clusterVisibilityValues(i)
         markerType = '.';
         plot3(features(thisCluster,1),features(thisCluster,2),features(thisCluster,3),markerType,'color',colors(i,:));
         axis([min(features(:,1)) max(features(:,1)) min(features(:,2)) max(features(:,2)) min(features(:,3)) max(features(:,3))]);
         colorStr = sprintf('\\color[rgb]{%f %f %f}',colors(i,1),colors(i,2),colors(i,3));
-        text(max(features(:,1)),max(features(:,2))-0.1*max(features(:,2))*(i-1),0,sprintf('%s%d:%d spikes',colorStr,handle.trode.spikeRankedCluster(i),length(thisCluster)),'HorizontalAlignment','right','VerticalAlignment','top');
+        text(max(features(:,1)),max(features(:,2))-0.1*max(features(:,2))*(i-1),0,sprintf('%s%d:%d spikes',colorStr,handles.trode.spikeRankedCluster(i),length(thisCluster)),'HorizontalAlignment','right','VerticalAlignment','top');
     end
     
 end
@@ -253,31 +257,31 @@ function waveAxis_UpdateFcn(hObject, eventdata, handles)
 axes(handles.waveAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(handles.trodes.spikeEvents)
+if isempty(handles.trode.spikeEvents)
     text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 
 % choose color scheme
-colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; % red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
 
 
 % now plot
-for i=1:length(handle.trode.spikeRankedCluster)
-    thisCluster=find(handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
+for i=1:length(handles.trode.spikeRankedCluster)
+    thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
     if ~isempty(thisCluster) && clusterVisibilityValues(i)
-        plot(handle.trode.spikeWaveforms(thisCluster,:)','color',colors(i,:));
+        plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
     end
 end
 
 title('waveforms');
 set(gca,'XTick',[]);
-axis([1 size(handle.trode.spikeWaveforms,2)  1.1*minmax(handle.trode.spikeWaveforms(:)') ])
+axis([1 size(handles.trode.spikeWaveForms,2)  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
 end
 
 
@@ -287,30 +291,36 @@ function waveMeansAxis_UpdateFcn(hObject, eventdata, handles)
 axes(handles.waveMeansAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(handle.trode.spikeEvents)
+if isempty(handles.trode.spikeEvents)
     text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 
 % choose color scheme
-colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; % red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
-
-
-for i=1:length(handle.trode.spikeRankedCluster)
-    thisCluster=find(handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
+sizSpikeWvFrm = size(handles.trode.spikeWaveForms);
+if length(sizSpikeWvFrm)==3
+    
+    spikeWaveForms = reshape(handles.trode.spikeWaveForms,sizSpikeWvFrm(1),sizSpikeWvFrm(2)*sizSpikeWvFrm(3));
+else
+    spikeWaveForms = handles.trode.spikeWaveForms;
+end
+for i=1:length(handles.trode.spikeRankedCluster)
+    thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
     if ~isempty(thisCluster)&& clusterVisibilityValues(i)
-        meanWave = mean(handle.trode.spikeWaveForms(thisCluster,:),1);
-        stdWave = std(handle.trode.spikeWaveForms(thisCluster,:),1);
+        meanWave = mean(spikeWaveForms(thisCluster,:),1);
+        stdWave = std(spikeWaveForms(thisCluster,:),1);
         plot(meanWave','color',colors(i,:),'LineWidth',2);
-        lengthOfWaveform = size(handle.trode.spikeWaveForms,2);
+        lengthOfWaveform = size(spikeWaveForms,2);
         fillWave = fill([1:lengthOfWaveform fliplr(1:lengthOfWaveform)]',[meanWave+stdWave fliplr(meanWave-stdWave)]',colors(i,:));set(fillWave,'edgeAlpha',0,'faceAlpha',.2);
     end
 end
-set(gca,'XTick',[1 25 61],'XTickLabel',{sprintf('%2.2f',-24000/handles.plottingInfo.samplingRate),'0',sprintf('%2.2f',36000/handles.plottingInfo.samplingRate)});xlabel('ms');
+
+% set(gca,'XTick',[1 25 61],'XTickLabel',{sprintf('%2.2f',-24000/handles.plottingInfo.samplingRate),'0',sprintf('%2.2f',36000/handles.plottingInfo.samplingRate)});xlabel('ms');
 end
 
 
@@ -321,28 +331,27 @@ function hist10MSAxis_UpdateFcn(hObject, eventdata, handles)
 axes(handles.hist10MSAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(handle.trode.spikeEvents)
+if isempty(handles.trode.spikeEvents)
     text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 % set the colors
-colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; %red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
 
 %inter-spike interval distribution
-trialNums = unique(trialNumForSpikes);
 existISILess10MS = false;
 maxEdgePart = 0;
 maxProbPart = 0;
 % for other spikes
-for i = 1:length(handle.trode.spikeRankedCluster)
+for i = 1:length(handles.trode.spikeRankedCluster)
     if clusterVisibilityValues(i)
-        thisCluster = (handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
-        ISIThisCluster = diff(handle.trode.spikeTimeStamps(thisCluster));
+        thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+        ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
         
         % part
         edges = linspace(0,10,100);
@@ -360,7 +369,7 @@ end
 if existISILess10MS
     axis([0 maxEdgePart 0 maxProbPart]);
     text(maxEdgePart/2,maxProbPart,'ISI<10ms','HorizontalAlignment','center','VerticalAlignment','Top')
-    lockout=1000*39/handles.trode.detectionParam.samplingFreq;  %why is there a algorithm-imposed minimum ISI?  i think it is line 65  detectSpikes
+    lockout=1000*39/handles.trode.detectParams.samplingFreq;  %why is there a algorithm-imposed minimum ISI?  i think it is line 65  detectSpikes
     lockout=edges(max(find(edges<=lockout)));
     plot([lockout lockout],get(gca,'YLim'),'k') %
     plot([2 2], get(gca,'YLim'),'k--')
@@ -376,7 +385,7 @@ function hist10000MSAxis_UpdateFcn(hObject, eventdata, handles)
 axes(handles.hist10000MSAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(handle.trode.spikeEvents)
+if isempty(handles.trode.spikeEvents)
     text(0.5,0.5,'no spikes introde','HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
@@ -384,10 +393,10 @@ end
 
 
 % set the colors
-colors=getClusterColorValues(handles,handle.trode.spikeRankedCluster);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 % colors(1,:) = [1 0 0]; %red
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, handle.trode.spikeRankedCluster);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
 
 %inter-spike interval distribution
@@ -395,10 +404,10 @@ existISILess10000MS = false;
 maxEdgeTot = 0;
 maxProbTot = 0;
 % for other spikes
-for i = 1:length(handle.trode.spikeRankedCluster)
+for i = 1:length(handles.trode.spikeRankedCluster)
     if clusterVisibilityValues(i)
-        thisCluster = (handle.trode.spikeAssignedCluster==handle.trode.spikeRankedCluster(i));
-        ISIThisCluster = diff(handle.trode.spikeTimeStamps(thisCluster));
+        thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+        ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
         
         % total
         edges = linspace(0,10000,100);
@@ -431,75 +440,29 @@ function firingRateAxis_UpdateFcn(hObject, eventdata, handles)
 axes(handles.firingRateAxis); cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handles.trode.spikeEvents)
+    text(0.5,0.5,sprintf('no spikes in trode'),'HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 % set the colors
-colors=getClusterColorValues(handles,rankedClusters);
-% colors(1,:) = [1 0 0]; %red
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 
-clusterVisibilityValues = getClusterVisibilityValues(handles, rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
 
-minimumTimeToEstimateFiringRate = min(sum(handles.currentSpikeRecord.chunkDuration)/3,3);% seconds
+minimumTimeToEstimateFiringRate = 1;% seconds
 
-secondsPerDay = 86400;
-trialNums = unique(trialNumsForChunks);
-
-groupingOfTrials = {};
-currentRunningDuration = 0;
-theseTrialsInStreak = [];
-
-% create the grouping of trials
-for i = 1:length(trialNums)
-    currentTrialNum = trialNums(i);
-    netDurationAtCurrentTrial = sum(chunkDurationForChunks(trialNumsForChunks==currentTrialNum));
-    if (currentRunningDuration+netDurationAtCurrentTrial)>minimumTimeToEstimateFiringRate
-        theseTrialsInStreak(end+1) = currentTrialNum;
-        startTimeForStreak=unique(trialStartTimeForChunks(trialNumsForChunks==min(theseTrialsInStreak)));
-        if length(startTimeForStreak)~=1
-            error('what!')
-        end
-        groupingOfTrials{end+1} = {startTimeForStreak, currentRunningDuration+netDurationAtCurrentTrial, theseTrialsInStreak};
-        currentRunningDuration = 0;
-        theseTrialsInStreak = [];
-    else
-        currentRunningDuration = currentRunningDuration+netDurationAtCurrentTrial;
-        theseTrialsInStreak(end+1) = currentTrialNum;
-    end
-end
-groupingOfTrials{end+1} = {startTimeForStreak, currentRunningDuration+netDurationAtCurrentTrial, theseTrialsInStreak};
-
-% create the spikeCountMatrix
-spikeCountMatrix = nan(length(groupingOfTrials),length(rankedClusters));
-trialStartAndDuration = nan(length(groupingOfTrials),2);
-for groupNum = 1:length(groupingOfTrials)
-    whichTrials = groupingOfTrials{groupNum}{3};
-    for clustNum = 1:length(rankedClusters)
-        spikeCountMatrix(groupNum,clustNum) = length(find(ismember(trialNumForSpikes,whichTrials)&(assignedClusters==rankedClusters(clustNum))));
-    end
-    trialStartAndDuration(groupNum,:) = [groupingOfTrials{groupNum}{1} groupingOfTrials{groupNum}{2}];
-end
-firingRateMatrix = spikeCountMatrix./repmat(trialStartAndDuration(:,2),1,length(rankedClusters));
-for clustNum = 1:length(rankedClusters)
+for clustNum = 1:length(handles.trode.spikeRankedCluster)
     if clusterVisibilityValues(clustNum)
-        % plot((trialStartAndDuration(:,1)-min(trialStartAndDuration(:,1)))*secondsPerDay,firingRateMatrix(:,clustNum),'LineWidth',2,'color',colors(clustNum,:));
-        plot((trialStartAndDuration(:,1)-min(trialStartAndDuration(:,1)))*secondsPerDay,firingRateMatrix(:,clustNum),'.','color',colors(clustNum,:));
+        spkTs=handles.trode.spikeTimeStamps(handles.trode.spikeAssignedCluster==clustNum);
+        sessionDur = 0:minimumTimeToEstimateFiringRate:ceil(max(handles.trode.spikeTimeStamps));
+        spikeInBin = histc(spkTs,sessionDur); 
+        
+        plot(sessionDur,spikeInBin,'color',colors(clustNum,:));
     end
 end
-try
-    xlims = minmax(makerow((trialStartAndDuration(:,1)-min(trialStartAndDuration(:,1)))*secondsPerDay));
-    if xlims(2) == xlims(1)
-        xlims(2) = xlims(1)+1;
-    end
-    axis([xlims -0.1*max(firingRateMatrix(:)) 1.1*max(firingRateMatrix(:))]);
-catch ex
-    keyboard
-    warning('something wrong with the axis call. im just going to deal with it arbitrarily. but it needs thought and work');
-    axis
-end
+
 end
 % populating the trodesMenu popup menu
 function trodesMenu_Initialize(hObject, eventdata, handles)
@@ -513,7 +476,7 @@ set(handles.trodesMenu,'Value',currTrodeNum);
 end
 % initialize the clusterPanel
 function clusterListPanel_Initialize(hObject, eventdata, handles)
-whichTrode = handles.currTrode;
+whichTrode = handles.trode;
 try
     rankedClustersCell = whichTrode.spikeRankedCluster;
 catch ex
@@ -558,30 +521,26 @@ guidata(hObject,handles);
 end
 % barChartWhole
 function barChartWhole_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-
 % select the axis
 axes(handles.barChartWhole); cla; hold on;
 
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handles.trode.spikeEvents)
+    text(0.5,0.5,sprintf('no spikes in trode'),'HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 % set the colors
-colors=getClusterColorValues(handles,rankedClusters);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 
 % get cluster visibility
-clusterVisibilityValues = getClusterVisibilityValues(handles,rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles,handles.trode.spikeRankedCluster);
 
-spikeCounts = nan(length(rankedClusters),1);
+spikeCounts = nan(length(handles.trode.spikeRankedCluster),1);
 clusterNames = {};
-for i = 1:length(rankedClusters)
-    spikeCounts(i) = length(find(assignedClusters==rankedClusters(i)));
-    clusterNames{i} = sprintf('%d',rankedClusters(i));
+for i = 1:length(handles.trode.spikeRankedCluster)
+    spikeCounts(i) = length(find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i)));
+    clusterNames{i} = sprintf('%d',handles.trode.spikeRankedCluster(i));
 end
 % normalize by the % of spikes
 spikeCounts = 100*spikeCounts/sum(spikeCounts);
@@ -589,7 +548,7 @@ spikeCounts = 100*spikeCounts/sum(spikeCounts);
 barWhole = bar(spikeCounts);
 
 % now change colors according to colormap
-for i = 1:length(rankedClusters)
+for i = 1:length(handles.trode.spikeRankedCluster)
     if ~clusterVisibilityValues(i)
         colors(i,:) = [0.5 0.5 0.5];
     end
@@ -598,29 +557,27 @@ set(get(barWhole,'Children'),'FaceVertexCData',colors);
 end
 % barChartPart
 function barChartPart_UpdateFcn(hObject, eventdata, handles)
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
+
 
 % select the axis
 axes(handles.barChartPart); cla; hold on;
 % now check if worth plotting
-if isempty(spikes)
-    text(0.5,0.5,sprintf('no spikes in %s',whichTrode),'HorizontalAlignment','center','VerticalAlignment','middle');
+if isempty(handles.trode.spikeEvents)
+    text(0.5,0.5,sprintf('no spikes in trode'),'HorizontalAlignment','center','VerticalAlignment','middle');
     return
 end
 
 % set the colors
-colors=getClusterColorValues(handles,rankedClusters);
+colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 
 % get cluster visibility
-clusterVisibilityValues = getClusterVisibilityValues(handles,rankedClusters);
+clusterVisibilityValues = getClusterVisibilityValues(handles,handles.trode.spikeRankedCluster);
 
 spikeCounts = [];
 clusterNames = {};
-for i = 1:length(rankedClusters)
-    spikeCounts(i) = length(find(assignedClusters==rankedClusters(i)));
-    clusterNames{i} = sprintf('%d',rankedClusters(i));
+for i = 1:length(handles.trode.spikeRankedCluster)
+    spikeCounts(i) = length(find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i)));
+    clusterNames{i} = sprintf('%d',handles.trode.spikeRankedCluster(i));
 end
 
 %now include only those that actually are visible
@@ -642,7 +599,7 @@ end
 %% Callbacks are set here
 % --- Executes on selection change in trodesMenu.
 function trodesMenu_Callback(hObject, eventdata, handles)
-% hObject    handle to trodesMenu (see GCBO)
+% hObject    handles to trodesMenu (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 newTrodeNum = get(handles.trodesMenu,'Value');
@@ -668,7 +625,7 @@ function sortSpikesButton_Callback(hObject, eventdata, handles)
 whichTrode = handles.currTrode;
 spikes = whichTrode.spikeEvents;
 spikeTimestamps = whichTrode.spikeTimeStamps;
-spikeWaveforms = whichTrode.waveformsToCluster;
+spikeWaveForms = whichTrode.waveformsToCluster;
 spikeSortingParams = handles.spikeSortingParams.(whichTrode);
 rankedClustersCell = whichTrode.spikeRankedCluster;
 assignedClusters = whichTrode.spikeAssignedCluster;
@@ -700,7 +657,7 @@ end
 clustersToSort = rankedClusters(find(clusterVisibilityValues));
 theseSpikes = ismember(assignedClusters,clustersToSort);
 spikesToSort = spikes(theseSpikes);
-spikeWaveformsToSort = spikeWaveforms(theseSpikes,:);
+spikeWaveformsToSort = spikeWaveForms(theseSpikes,:);
 spikeTimeStampsToSort = spikeTimestamps(theseSpikes);
 
 % now remove those clusters
@@ -855,31 +812,11 @@ function mergePushButton_Callback(hObject, eventdata, handles)
 % hObject    handle to mergePushButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-whichTrode = handles.currTrode;
-spikes =  whichTrode.spikeEvents;
-spikeWaveforms =  whichTrode.waveformsToCluster;
-assignedClusters =  whichTrode.spikeAssignedCluster;
-spikeTimestamps = whichTrode.spikeTimeStamps;
-trialNumForSpikes = 1; % ##trial num
-rankedClustersCell = whichTrode.spikeRankedCluster;
-processedClusters = whichTrode.clusteredSpikes;
-spikeModel = whichTrode.spikeModel;
-
-% sometimes rankedClusters is a Cell array. Just
-if iscell(rankedClustersCell) %(happens when we call after sorting on every chunk)
-    rankedClusters = [];
-    for i = 1:length(rankedClustersCell)
-        rankedClusters = unique([rankedClusters;makerow(rankedClustersCell{i})']);
-    end
-else
-    rankedClusters = rankedClustersCell;
-end
-
 clusterVisibilityValues = [];
 clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
 clusterVisibilityValuesUnordered = get(get(handles.clusterListPanel,'Children'),'Value');
-for i = 1:length(rankedClusters)
-    index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
+for i = 1:length(handles.trode.spikeRankedCluster)
+    index = find(strcmp(clusterSelectionStrings,sprintf('%d',handles.trode.spikeRankedCluster(i))));
     clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
 end
 
@@ -889,12 +826,11 @@ if all(~clusterVisibilityValues)
 end
 
 whichClusters = find(clusterVisibilityValues);
-mergedClusterNumber = min(rankedClusters(whichClusters));
-assignedClusters(ismember(assignedClusters,rankedClusters(whichClusters))) = mergedClusterNumber;
-rankedClusters(ismember(rankedClusters,rankedClusters(whichClusters))&(rankedClusters~=mergedClusterNumber)) = [];
-handles.currentSpikeRecord.(whichTrode).rankedClusters = rankedClusters;
-handles.currentSpikeRecord.(whichTrode).assignedClusters = assignedClusters;
-
+mergedClusterNumber = min(handles.trode.spikeRankedCluster(whichClusters));
+handles.trode.spikeAssignedCluster(ismember(handles.trode.spikeAssignedCluster,...
+    handles.trode.spikeRankedCluster(whichClusters))) = mergedClusterNumber;
+handles.trode.spikeRankedCluster(ismember(handles.trode.spikeRankedCluster,...
+    handles.trode.spikeRankedCluster(whichClusters))&(handles.trode.spikeRankedCluster~=mergedClusterNumber)) = [];
 guidata(hObject,handles);
 % fill up the clusters panel
 clusterListPanel_Initialize(hObject, eventdata, handles);
@@ -908,28 +844,36 @@ function splitPushButton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-[whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles);
-
 % check if there is only one cluster visible. else warn.
-clusterVisibilityValues = getClusterVisibilityValues(handles,rankedClusters);
+
+clusterVisibilityValues = getClusterVisibilityValues(handles,handles.trode.spikeRankedCluster);
 if length(find(clusterVisibilityValues))~=1
     h = warndlg('Exactly one cluster should be visible'); uiwait(h);
     return
 end
-whichCluster = rankedClusters(find(clusterVisibilityValues));
+whichCluster = handles.trode.spikeRankedCluster(find(clusterVisibilityValues));
 
 viewPosition = get(handles.featureAxis,'CameraPosition');
 viewAngle = get(handles.featureAxis,'CameraViewAngle');
 viewPosition = viewPosition/norm(viewPosition);
 % get the feature values
-[featuresAll nDim] = useFeatures(spikeWaveforms,spikeModel.featureList,spikeModel.featureDetails);
+switch length(size(handles.trode.spikeWaveForms))
+    case 2
+        [featuresAll, nDim] = useFeatures(handles.trode.spikeWaveForms,...
+            handles.trode.spikeModel.featureList,...
+            handles.trode.spikeModel.featureDetails);
+    case 3
+        sizWvFrm = size(handles.trode.spikeWaveForms)
+        [featuresAll, nDim] = useFeatures(...
+            reshape(handles.trode.spikeWaveForms,sizWvFrm(1),sizWvFrm(2)*sizWvFrm(3)),...
+            handles.trode.spikeModel.featureList,...
+            handles.trode.spikeModel.featureDetails);
+end
 
 % filter original record to get only relevant spikes
-whichSpikes = ismember(assignedClusters,whichCluster);
+whichSpikes = ismember(handles.trode.spikeAssignedCluster,whichCluster);
 featuresAll = featuresAll(whichSpikes,:);
-whichAssignedClusters = assignedClusters(whichSpikes);
+whichAssignedClusters = handles.trode.spikeAssignedCluster(whichSpikes);
 
 % we are using only features (1,2,and 3)
 featureNumbers = [1 2 3];
@@ -941,7 +885,7 @@ featuresProjectedBeforeRotation = featuresUsed*null(viewPosition);
 featuresProjected(:,1) = featuresProjectedBeforeRotation(:,1)*cos(viewAngle)-featuresProjectedBeforeRotation(:,2)*sin(viewAngle);
 featuresProjected(:,2) = featuresProjectedBeforeRotation(:,2)*cos(viewAngle)+featuresProjectedBeforeRotation(:,1)*sin(viewAngle);
 
-clusterColorValues = getClusterColorValues(handles,rankedClusters);
+clusterColorValues = getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 colors = clusterColorValues(find(clusterVisibilityValues),:);
 splitFigure = figure('Name','Place an ellipse to split the cluster');
 featAxis = axes;
@@ -955,7 +899,7 @@ a = posn(3)/2; b = posn(4)/2; cenX = posn(1)+a; cenY = posn(2)+b;
 
 % move coordinates to center of ellipse
 featShifted = [featuresProjected(:,1)-cenX featuresProjected(:,2)-cenY];
-[theta rho] = cart2pol(featShifted(:,1),featShifted(:,2));
+[theta, rho] = cart2pol(featShifted(:,1),featShifted(:,2));
 whichIn = (rho<(a*b)./sqrt(((b^2*cos(theta).^2)+(a^2*sin(theta).^2))));
 
 if 0 % for verification only
@@ -968,15 +912,11 @@ if 0 % for verification only
 end
 
 % deal with the original records.
-newClusterNum = max(rankedClusters)+1;
-rankedClusters(end+1) = newClusterNum;
+newClusterNum = max(handles.trode.spikeRankedCluster)+1;
+handles.trode.spikeRankedCluster(end+1) = newClusterNum;
 % now the assignedClusters. Ones not in the selected region get the new number
 whichAssignedClusters(~whichIn) = newClusterNum;
-assignedClusters(whichSpikes)=whichAssignedClusters;
-
-% update the currentSpikeRecord
-handles.currentSpikeRecord.(whichTrode).rankedClusters = rankedClusters;
-handles.currentSpikeRecord.(whichTrode).assignedClusters = assignedClusters;
+handles.trode.spikeAssignedCluster(whichSpikes)=whichAssignedClusters;
 
 % update the records
 guidata(hObject,handles);
@@ -996,7 +936,7 @@ function hist10MSAxis_ButtonDownFcn(hObject, eventdata, handles)
 handles = guidata(hObject);
 whichTrode = handles.currTrode;
 spikes =  whichTrode.spikeEvents;
-spikeWaveforms =  whichTrode.waveformsToCluster;
+spikeWaveForms =  whichTrode.waveformsToCluster;
 assignedClusters =  whichTrode.spikeAssignedCluster;
 spikeTimestamps = whichTrode.spikeTimeStamps;
 trialNumForSpikes = 1; % ##trial num
@@ -1172,12 +1112,12 @@ for i = 1:n
     position(i,:) = [((xPos-1)*eachColSize) 1-((yPos-1)*eachRowSize)];
 end
 end
-function [whichTrode spikes spikeWaveforms assignedClusters spikeTimestamps ...
+function [whichTrode spikes spikeWaveForms assignedClusters spikeTimestamps ...
     trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
     getSpikeData(handles)
 whichTrode = handles.currTrode;
 spikes = whichTrode.spikeEvents;
-spikeWaveforms =  whichTrode.waveformsToCluster; % ## maybe would rather use whichTrode.spikeWaveforms?
+spikeWaveForms =  whichTrode.waveformsToCluster; % ## maybe would rather use whichTrode.spikeWaveForms?
 assignedClusters = whichTrode.spikeAssignedCluster; 
 spikeTimestamps = whichTrode.spikeTimeStamps;
 trialNumForSpikes = 1; % ## not sure what to do for trial num yet

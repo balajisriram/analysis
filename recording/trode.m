@@ -84,7 +84,7 @@ classdef trode
         end
         
         function tr = inspectSpikes(tr)
-            
+            interactiveInspectGUI(tr)
         end
         
         function out = numSpikes(tr)
