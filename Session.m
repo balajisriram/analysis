@@ -76,9 +76,9 @@ classdef Session
             end
         end
         
-        function [fileName] = saveSession(session)  % save session as a struct to mat file
-            fileName = [session.sessionFolder,'___',int2str(session.timeStamp),'.mat'];
-            save(fileName, '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
+        function [fileName] = saveSession(sess)  % save session as a struct to mat file
+            fileName = [sess.sessionFolder,'___',int2str(sess.timeStamp),'.mat'];
+            save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end
     end
 end
