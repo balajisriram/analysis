@@ -9,7 +9,7 @@ classdef filteredThreshold < spikeDetectionParam
         alignMethod = 'atPeak'
         peakAlignment = 'filtered'
         returnedSpikes = 'filtered'
-        lockoutDurMs = 0.1
+        lockoutDurMs = 1
         thresholdMethod = 'std'
         ISIviolationMS = 1
         method = 'filteredThresh'
@@ -61,7 +61,6 @@ classdef filteredThreshold < spikeDetectionParam
             loThresh = par.thresholdVolts(1,:);
             hiThresh = par.thresholdVolts(2,:);
             
-           
             N=round(min(par.samplingFreq/200,floor(size(neuralData,1)/3)));
             [b,a]=fir1(N,2*par.freqLowHi/par.samplingFreq);
             if 3*max(length(b),length(a))>size(neuralData,1)
@@ -86,14 +85,14 @@ classdef filteredThreshold < spikeDetectionParam
             for i = 1:size(neuralData,2)
                 top = find([false; diff(filteredSignal(:,i)>hiThresh(i))>0]);
                 bottom = find([false; diff(filteredSignal(:,i)<loThresh(i))>0]);
-                topAmountAllChan = [topAmountAllChan length(top)];
-                botAmountAllChan = [botAmountAllChan length(bottom)];   % ## makes matrix that keeps track of how many times threshold
+                topAmountAllChan = [topAmountAllChan i*ones(size(top))];
+                botAmountAllChan = [botAmountAllChan i*ones(size(bottom))];   % ## makes matrix that keeps track of how many times threshold
                 tops = [tops;top];                                      %    is crossed per channel.
                 bottoms = [bottoms;bottom];
             end
             
-            [tops,    uTops,    topTimes]   =filteredThreshold.extractPeakAligned(tops,1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, topAmountAllChan);
-            [bottoms, uBottoms, bottomTimes]=filteredThreshold.extractPeakAligned(bottoms,-1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, botAmountAllChan);
+            [tops,    topTimes]   =filteredThreshold.extractPeakAligned(tops,1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, topAmountAllChan);
+            [bottoms, bottomTimes]=filteredThreshold.extractPeakAligned(bottoms,-1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, botAmountAllChan);
             
             
             %maybe sort the order...
@@ -112,13 +111,14 @@ classdef filteredThreshold < spikeDetectionParam
             [spikeTimestamps, reorderedInds]=sort(spikeTimestamps);  % also get the reorderedInds from this
             spikeWaveforms=spikeWaveforms(reorderedInds,:,:);
             spikes = spikes(reorderedInds);
-            
+
+            keyboard
             % support for lockout
             if par.lockoutDurMs>0  % ## NOTE: changing order of channels sometimes can slightly change # of spikes blocked
                 blocked=find(diff([0; spikeTimestamps])<par.lockoutDurMs/1000);
                 spikes(blocked) = [];
                 spikeTimestamps(blocked)=[];
-                spikeWaveforms(blocked,:,:)=[]; % check dimentions
+                spikeWaveforms(blocked,:,:)=[]; % check dimensions
             end
             
             if length(spikes)~=length(unique(spikes))
@@ -130,8 +130,8 @@ classdef filteredThreshold < spikeDetectionParam
     end
     
     methods (Static=true)
-        function [group uGroup groupPts]=extractPeakAligned(group,flip,sampRate,spkSampsBeforeAfter,filt,data, fromChannel)
-            maxMSforPeakAfterThreshCrossing=.5; %this is equivalent to a lockout, because all peaks closer than this will be called one peak, so you'd miss IFI's smaller than this.
+        function [group groupPts]=extractPeakAligned(group,flip,sampRate,spkSampsBeforeAfter,filt,data, fromChannel)
+            maxMSforPeakAfterThreshCrossing=1; %this is equivalent to a lockout, because all peaks closer than this will be called one peak, so you'd miss IFI's smaller than this.
             % we should check for this by checking if we said there were multiple spikes at the same time.
             % but note this is ONLY a consequence of peak alignment!  if aligned on thresh crossings, no lockout necessary (tho high frequency noise riding on the spike can cause it
             % to cross threshold multiple times, causing you to count it multiple times w/timeshift).
@@ -144,10 +144,15 @@ classdef filteredThreshold < spikeDetectionParam
             spkPts=[-spkSampsBeforeAfter(1):spkSampsBeforeAfter(2)];
             %spkPts=(1:spkLength)-ceil(spkLength/2); % centered
             
-            groupPts=group((group+spkLength-1)<length(filt) & group-ceil(spkLength/2)>0);
+            % make sure that we can always find all the data for spike
+            % before extracting it for analysis. spike from the beginning
+            % and end are removed
+            groupPts=group((group+spkLength-1)<length(filt) & group-ceil(spkLength/2)>0); 
             
             % this is ugly. but works. computationally identical.
             if length(groupPts) ==1
+                warning('may not work');
+                keyboard
                 group = data(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1));
                 group = group';
                 [junk loc]=max(flip*group,[],2);
@@ -161,29 +166,46 @@ classdef filteredThreshold < spikeDetectionParam
                 uGroup =[];
                 groupPts=[];
             else
+
+%                 group=data(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1)); %use (sharper) unfiltered peaks!
+%                 [junk loc]=max(flip*group,[],2);
+%                 groupPts=((loc-1)+groupPts);
+%                 groupPts=groupPts((groupPts+floor(spkLength/2))<length(filt));
+%                 group= filt(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));
+%                 uGroup=data(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));
+%                 uGroup=uGroup-repmat(mean(uGroup,2),1,spkLength);
+
+                
+                
                 % this code does not guarantee against multiple threshold crossings
                 % within the same region of interest. specify a
                 % par.lockoutDurMS to later filter them out!
                 group = [];
                 start = 1;
-                for i =  1:size(data,2)   % ## goes through and builds group by iterating through channel data 1 at a time.
-                    dat = data(:,i);
-                    g=dat(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1)); %use (sharper) unfiltered peaks!
-                    finish = (start+fromChannel(i)) - 1;
-                    for k = start:finish
-                        [junk, loc]=max(flip*g,[],2); % gets max point in size 15 sample
-                        groupPts(k)=((loc(k)-1)+groupPts(k));     % set group points to new peaks found
-                        groupPts=groupPts((groupPts+floor(spkLength/2))<length(filt));
-                    end
-                    start = finish;
+                for i =  1:size(filt,2)   % ## goes through and builds group by iterating through channel data 1 at a time.
+                    dat = filt(:,i);
+                    g=dat(repmat(groupPts(fromChannel==i),1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts(fromChannel==i)),1)); %use (sharper) unfiltered peaks!
+                    % finish = (start+fromChannel(i)) - 1;
+                    [~, loc]=max(flip*g,[],2); % gets max point in size 15 sample
+                    groupPts(fromChannel==i)=((loc-1)+groupPts(fromChannel==i));     % set group points to new peaks found
+                    groupPts=groupPts((groupPts+floor(spkLength/2))<length(filt));
+                    % start = finish;
                 end
-                for i =  1:size(data,2)     % ## after groupPts is centered on peak for specific channel spike was found cycle through
-                    fil = filt(:,i);        %    all channels again and extract data surrounding peak.
-                    g= fil(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1)); % replaces group with new full filtered data (group is what turns into "spikes" must focus on these).
-                    group = cat(3,group,g);
-                    uGroup=data(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1)); %ugroup does same but for unfiltered data
-                    uGroup=uGroup-repmat(mean(uGroup,2),1,spkLength);
+                
+                %group = nan(numEvents,numSamps,numChans);
+                group = nan(length(groupPts),spkLength,size(data,2));
+                for i = 1:size(data,2)
+                    %error('not sure this works');
+                    group(:,:,i) = filt(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));
                 end
+                
+%                 for i =  1:size(data,2)     % ## after groupPts is centered on peak for specific channel spike was found cycle through
+%                     fil = filt(:,i);        %    all channels again and extract data surrounding peak.
+%                     g= fil(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1)); % replaces group with new full filtered data (group is what turns into "spikes" must focus on these).
+%                     group = cat(3,group,g);
+%                     uGroup=data(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1)); %ugroup does same but for unfiltered data
+%                     uGroup=uGroup-repmat(mean(uGroup,2),1,spkLength);
+%                 end
             end
             % just gonna try with the filtered spikes
             % group=filt(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1)); %use (sharper) unfiltered peaks!
