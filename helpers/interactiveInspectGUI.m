@@ -130,11 +130,13 @@ function hist10MSAxis_CreateFcn(hObject, eventdata, handles)
 end
 % hist10000MSAxis
 % --- Executes during object creation, after setting all properties.
-function hist10000MSAxis_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to hist10000MSAxis (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-end
+
+% function hist10000MSAxis_CreateFcn(hObject, eventdata, handles)
+% % hObject    handle to hist10000MSAxis (see GCBO)
+% % eventdata  reserved - to be defined in a future version of MATLAB
+% % handles    empty - handles not created until after all CreateFcns called
+% end
+
 % trodesMenu
 % --- Executes during object creation, after setting all properties.
 function trodesMenu_CreateFcn(hObject, eventdata, handles)
@@ -203,15 +205,16 @@ function updateAllAxes(hObject, eventdata, handles)
 featureAxis_UpdateFcn(hObject, eventdata, handles);
 waveAxis_UpdateFcn(hObject, eventdata, handles);
 waveMeansAxis_UpdateFcn(hObject, eventdata, handles);
-linkaxes([handles.waveAxis handles.waveMeansAxis],'xy')
+linkaxes([handles.waveAxis handles.waveMeansAxis],'xy');
+%hist10000MSAxis_UpdateFcn(hObject, eventdata, handles);                 % ##zzz removed, no longer use
 hist10MSAxis_UpdateFcn(hObject, eventdata, handles);
-hist10000MSAxis_UpdateFcn(hObject, eventdata, handles);
 firingRateAxis_UpdateFcn(hObject, eventdata, handles);
 barChartWhole_UpdateFcn(hObject, eventdata, handles);
 barChartPart_UpdateFcn(hObject, eventdata, handles);
 end
 % featureAxis
 function featureAxis_UpdateFcn(hObject, eventdata, handles)
+
 % go to the axis
 axes(handles.featureAxis);cla; hold on;
 
@@ -380,58 +383,90 @@ end
 end
 
 % hist10000MSAxis
-function hist10000MSAxis_UpdateFcn(hObject, eventdata, handles)
-% select the axis
-axes(handles.hist10000MSAxis); cla; hold on;
-
-% now check if worth plotting
-if isempty(handles.trode.spikeEvents)
-    text(0.5,0.5,'no spikes introde','HorizontalAlignment','center','VerticalAlignment','middle');
-    return
-end
-
-
-
-% set the colors
-colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
-% colors(1,:) = [1 0 0]; %red
-
-clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
-
-
-%inter-spike interval distribution
-existISILess10000MS = false;
-maxEdgeTot = 0;
-maxProbTot = 0;
-% for other spikes
-for i = 1:length(handles.trode.spikeRankedCluster)
-    if clusterVisibilityValues(i)
-        thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
-        ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
-        
-        % total
-        edges = linspace(0,10000,100);
-        count=histc(ISIThisCluster,edges);
-        if sum(count)>0
-            existISILess10000MS = true;
-            prob=count/sum(count);
-            ISIfill = fill([edges(1); edges(:); edges(end)],[0; prob(:); 0],colors(i,:));
-            set(ISIfill,'edgeAlpha',0,'faceAlpha',.5);
-            maxEdgeTot = max(maxEdgeTot,max(edges));
-            maxProbTot = max(maxProbTot,max(prob));
-        end
-    end
-end
-
-if existISILess10000MS
-    axis([0 maxEdgeTot 0 maxProbTot]);
-    text(maxEdgeTot/2,maxProbTot,'ISI<10s','HorizontalAlignment','center','VerticalAlignment','Top')
-else
-    axis([0 10000 0 1]);
-    text(10000,1,'no ISI < 10 s','HorizontalAlignment','right','VerticalAlignment','Top');
-end
-end
-
+% function hist10000MSAxis_UpdateFcn(hObject, eventdata, handles)
+% % select the axis
+% axes(handles.hist10000MSAxis); cla; hold on;
+% 
+% % now check if worth plotting
+% if isempty(handles.trode.spikeEvents)
+%     text(0.5,0.5,'no spikes introde','HorizontalAlignment','center','VerticalAlignment','middle');
+%     return
+% end
+% 
+% 
+% 
+% % set the colors
+% colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
+% % colors(1,:) = [1 0 0]; %red
+% 
+% clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
+% 
+% 
+% %inter-spike interval distribution
+% existISILess10000MS = false;
+% maxEdgeTot = 0;
+% maxProbTot = 0;
+% % for other spikes
+% for i = 1:length(handles.trode.spikeRankedCluster)
+%     if clusterVisibilityValues(i)
+%         thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+%         ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
+%         
+%         % total
+%         edges = linspace(0,10000,100);
+%         count=histc(ISIThisCluster,edges);
+%         if sum(count)>0
+%             existISILess10000MS = true;
+%             prob=count/sum(count);
+%             ISIfill = fill([edges(1); edges(:); edges(end)],[0; prob(:); 0],colors(i,:));
+%             set(ISIfill,'edgeAlpha',0,'faceAlpha',.5);
+%             maxEdgeTot = max(maxEdgeTot,max(edges));
+%             maxProbTot = max(maxProbTot,max(prob));
+%         end
+%     end
+% end
+% 
+% if existISILess10000MS
+%     axis([0 maxEdgeTot 0 maxProbTot]);
+%     text(maxEdgeTot/2,maxProbTot,'ISI<10s','HorizontalAlignment','center','VerticalAlignment','Top')
+% else
+%     axis([0 10000 0 1]);
+%     text(10000,1,'no ISI < 10 s','HorizontalAlignment','right','VerticalAlignment','Top');
+% end
+% end
+% 
+% %inter-spike interval distribution
+% existISILess10000MS = false;
+% maxEdgeTot = 0;
+% maxProbTot = 0;
+% % for other spikes
+% for i = 1:length(handles.trode.spikeRankedCluster)
+%     if clusterVisibilityValues(i)
+%         thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+%         ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
+%         
+%         % total
+%         edges = linspace(0,10000,100);
+%         count=histc(ISIThisCluster,edges);
+%         if sum(count)>0
+%             existISILess10000MS = true;
+%             prob=count/sum(count);
+%             ISIfill = fill([edges(1); edges(:); edges(end)],[0; prob(:); 0],colors(i,:));
+%             set(ISIfill,'edgeAlpha',0,'faceAlpha',.5);
+%             maxEdgeTot = max(maxEdgeTot,max(edges));
+%             maxProbTot = max(maxProbTot,max(prob));
+%         end
+%     end
+% end
+% 
+% if existISILess10000MS
+%     axis([0 maxEdgeTot 0 maxProbTot]);
+%     text(maxEdgeTot/2,maxProbTot,'ISI<10s','HorizontalAlignment','center','VerticalAlignment','Top')
+% else
+%     axis([0 10000 0 1]);
+%     text(10000,1,'no ISI < 10 s','HorizontalAlignment','right','VerticalAlignment','Top');
+% end
+% end
 
 % firingRateAxis
 function firingRateAxis_UpdateFcn(hObject, eventdata, handles)
@@ -450,7 +485,6 @@ colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 
 clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
-
 minimumTimeToEstimateFiringRate = 1;% seconds
 
 for clustNum = 1:length(handles.trode.spikeRankedCluster)
@@ -464,6 +498,7 @@ for clustNum = 1:length(handles.trode.spikeRankedCluster)
 end
 
 end
+
 % populating the trodesMenu popup menu
 function trodesMenu_Initialize(hObject, eventdata, handles)
 trodesAvail = {};
@@ -476,6 +511,14 @@ set(handles.trodesMenu,'Value',currTrodeNum);
 end
 % initialize the clusterPanel
 function clusterListPanel_Initialize(hObject, eventdata, handles)
+
+try 
+    length(handles.previouslyVisible);
+catch ex
+    % if it fails by not finding the .previouslyvisible list
+    handles.previouslyVisible = handles.trode.spikeRankedCluster;
+end
+
 whichTrode = handles.trode;
 try
     rankedClustersCell = whichTrode.spikeRankedCluster;
@@ -497,6 +540,7 @@ if iscell(rankedClustersCell) %(happens when we call after sorting on every chun
 else
     rankedClusters = rankedClustersCell;
 end
+
 positionOfCheckBoxes = arrangeInSpace(length(rankedClusters),'rowThenColumn');
 if isfield(handles,'clusterListHandles')
     for i = 1:length(handles.clusterListHandles)
@@ -511,14 +555,21 @@ handles.cMap = colors;
 guidata(hObject,handles);
 % colors(1,:) = [1,0,0];
 for i = 1:length(rankedClusters)
-    handles.clusterListHandles(i) = uicontrol('Parent',handles.clusterListPanel,'Style','checkbox',...
-        'String',sprintf('%d',rankedClusters(i)),'Value',1,'Units','normalized',...
-        'Position',[([0 -0.15]+positionOfCheckBoxes(i,:)) 0.12 0.15],'ForegroundColor',colors(i,:),'CallBack',{@updateAllAxes,handles});
+    if length(find(handles.previouslyVisible == i)) > 0
+        handles.clusterListHandles(i) = uicontrol('Parent',handles.clusterListPanel,'Style','checkbox',...
+            'String',sprintf('%d',rankedClusters(i)),'Value',1,'Units','normalized',...
+            'Position',[([0 -0.15]+positionOfCheckBoxes(i,:)) 0.12 0.15],'ForegroundColor',colors(i,:),'CallBack',{@updateAllAxes,handles});
+    else 
+        handles.clusterListHandles(i) = uicontrol('Parent',handles.clusterListPanel,'Style','checkbox',...
+            'String',sprintf('%d',rankedClusters(i)),'Value',0,'Units','normalized',...
+            'Position',[([0 -0.15]+positionOfCheckBoxes(i,:)) 0.12 0.15],'ForegroundColor',colors(i,:),'CallBack',{@updateAllAxes,handles});
+    end
 end
 
 % update the guidata
 guidata(hObject,handles);
 end
+
 % barChartWhole
 function barChartWhole_UpdateFcn(hObject, eventdata, handles)
 % select the axis
@@ -555,6 +606,7 @@ for i = 1:length(handles.trode.spikeRankedCluster)
 end
 set(get(barWhole,'Children'),'FaceVertexCData',colors);
 end
+
 % barChartPart
 function barChartPart_UpdateFcn(hObject, eventdata, handles)
 
@@ -616,6 +668,7 @@ updateAllAxes(hObject, eventdata, handles);
 % Hints: contents = get(hObject,'String') returns trodesMenu contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from trodesMenu
 end
+
 % --- Executes on button press in sortSpikesButton.
 function sortSpikesButton_Callback(hObject, eventdata, handles)
 % hObject    handle to sortSpikesButton (see GCBO)
@@ -680,6 +733,7 @@ guidata(hObject, handles);
 clusterListPanel_Initialize(hObject, eventdata, handles);
 updateAllAxes(hObject, eventdata, handles);
 end
+
 % --- Executes on button press in saveButton.
 function saveButton_Callback(hObject, eventdata, handles)
 % hObject    handle to saveButton (see GCBO)
@@ -706,6 +760,7 @@ if ~~isequal(handles.currentSpikeRecord,handles.originalSpikeRecord)||...
     end
 end
 end
+
 % --- Executes on button press in saveAndExitButton.
 function saveAndExitButton_Callback(hObject, eventdata, handles)
 % hObject    handle to saveAndExitButton (see GCBO)
@@ -750,6 +805,7 @@ switch saveChoice
 end
 interactiveInspectGUI_ExitFcn(hObject, eventdata, handles);
 end
+
 % --- Executes on button press in exitButton.
 function exitButton_Callback(hObject, eventdata, handles)
 % hObject    handle to exitButton (see GCBO)
@@ -767,6 +823,7 @@ switch saveChoice
 end
 interactiveInspectGUI_ExitFcn(hObject, eventdata, handles);
 end
+
 % --- Executes on slider movement.
 function thresholdSlider_Callback(hObject, eventdata, handles)
 % hObject    handle to thresholdSlider (see GCBO)
@@ -776,6 +833,7 @@ function thresholdSlider_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'Value') returns position of slider
 %        get(hObject,'Min') and get(hObject,'Max') to determine range of slider
 end
+
 % --- Executes on button press in restoreButton.
 function restoreButton_Callback(hObject, eventdata, handles)
 % hObject    handle to restoreButton (see GCBO)
@@ -807,6 +865,7 @@ clusterListPanel_Initialize(hObject, eventdata, handles);
 updateAllAxes(hObject, eventdata, handles);
 
 end
+
 % --- Executes on button press in mergePushButton.
 function mergePushButton_Callback(hObject, eventdata, handles)
 % hObject    handle to mergePushButton (see GCBO)
@@ -831,13 +890,22 @@ handles.trode.spikeAssignedCluster(ismember(handles.trode.spikeAssignedCluster,.
     handles.trode.spikeRankedCluster(whichClusters))) = mergedClusterNumber;
 handles.trode.spikeRankedCluster(ismember(handles.trode.spikeRankedCluster,...
     handles.trode.spikeRankedCluster(whichClusters))&(handles.trode.spikeRankedCluster~=mergedClusterNumber)) = [];
+
+% ##zzz sets previously visible NOTE: SETS TO INDEX NOT VALUE
+handles.previouslyVisible = find(handles.trode.spikeRankedCluster == mergedClusterNumber);
+disp(handles.previouslyVisible)
+
 guidata(hObject,handles);
 % fill up the clusters panel
+%clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% only shows merged cluster.
 clusterListPanel_Initialize(hObject, eventdata, handles);
 
 % now update the axes
 updateAllAxes(hObject, eventdata, handles);
 end
+
 % --- Executes on button press in splitPushButton.
 function splitPushButton_Callback(hObject, eventdata, handles)
 % hObject    handle to splitPushButton (see GCBO)
@@ -918,31 +986,38 @@ handles.trode.spikeRankedCluster(end+1) = newClusterNum;
 whichAssignedClusters(~whichIn) = newClusterNum;
 handles.trode.spikeAssignedCluster(whichSpikes)=whichAssignedClusters;
 
+% ##zzz sets previously visible NOTE: SETS TO INDEX NOT VALUE
+handles.previouslyVisible = find(handles.trode.spikeRankedCluster == whichCluster);
+handles.previouslyVisible(end+1) = find(handles.trode.spikeRankedCluster == newClusterNum);
+disp(handles.previouslyVisible)
+
 % update the records
 guidata(hObject,handles);
 
 % update cluster list panel
+%clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% ##zzz Instad of clusterListPanel_Initialize, run different initialize that
+% only shows two split clusters.
 clusterListPanel_Initialize(hObject, eventdata, handles);
 
 % update Axes
 updateAllAxes(hObject, eventdata, handles);
 
 end
+
 % --- Executes on mouse press over axes background.
 function hist10MSAxis_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to hist10MSAxis (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 handles = guidata(hObject);
-whichTrode = handles.currTrode;
+whichTrode = handles.trode;
 spikes =  whichTrode.spikeEvents;
 spikeWaveForms =  whichTrode.waveformsToCluster;
 assignedClusters =  whichTrode.spikeAssignedCluster;
 spikeTimestamps = whichTrode.spikeTimeStamps;
-trialNumForSpikes = 1; % ##trial num
 rankedClustersCell = whichTrode.spikeRankedCluster;
-processedClusters = whichTrode.clusteredSpikes;
-spikeModel = whichTrode.spikeModel;
 
 % now check if worth plotting
 if isempty(spikes)
@@ -981,7 +1056,6 @@ end
 
 
 %inter-spike interval distribution
-trialNums = unique(trialNumForSpikes);
 existISILess10MS = false;
 maxEdgePart = 0;
 maxProbPart = 0;
@@ -989,15 +1063,8 @@ maxProbPart = 0;
 whichClusters = find(clusterVisibilityValues);
 whichSpikes = ismember(assignedClusters,rankedClusters(whichClusters));
 whichSpikeTimeStamps = spikeTimestamps(whichSpikes);
-whichTrialNumForSpikes = trialNumForSpikes(whichSpikes);
-trialNums = unique(whichTrialNumForSpikes);
-ISIMergedCluster = [];
-for currTrialNum = 1:length(trialNums)
-    whichThisTrialMergedCluster = (whichTrialNumForSpikes==trialNums(currTrialNum));
-    spikeTimeStampsThisTrialMergedCluster = whichSpikeTimeStamps(whichThisTrialMergedCluster);
-    ISIMergedCluster = [ISIMergedCluster; diff(spikeTimeStampsThisTrialMergedCluster*1000)];
-end
-% part
+ISIMergedCluster = diff(whichSpikeTimeStamps*1000);
+
 edges = linspace(0,10,100);
 count=histc(ISIMergedCluster,edges);
 if sum(count)>0
@@ -1112,6 +1179,8 @@ for i = 1:n
     position(i,:) = [((xPos-1)*eachColSize) 1-((yPos-1)*eachRowSize)];
 end
 end
+
+%% not used
 function [whichTrode spikes spikeWaveForms assignedClusters spikeTimestamps ...
     trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
     getSpikeData(handles)
@@ -1136,6 +1205,7 @@ else
 end
 end
 
+%%
 
 function clusterVisibilityValues = getClusterVisibilityValues(handles,rankedClusters)
 clusterVisibilityValues = [];
@@ -1158,4 +1228,6 @@ for i = 1:length(rankedClusters)
         clusterColorValues(i,:) = clusterColorValuesUnordered{index};
 
 end
+
 end
+
