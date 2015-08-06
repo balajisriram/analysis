@@ -38,8 +38,7 @@ classdef trode
             tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(5,1,length(chans)),'std');
             
             % set standard sorting params here
-            tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik
-            
+            tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik           
         end %trode  
         
         function tr = detectSpikes(tr,dataPath)
@@ -64,9 +63,9 @@ classdef trode
                 end
             end
             
-            meanAndStd = [tr.Mean; tr.Std];
+            %meanAndStd = [tr.Mean; tr.Std];
             
-            tr.detectParams = tr.detectParams.setupAndValidateParams(meanAndStd);
+%             tr.detectParams = tr.detectParams.setupAndValidateParams(meanAndStd);
 
             [tr.spikeEvents, tr.spikeWaveForms, tr.spikeTimeStamps]= ...
                 tr.detectParams.detectSpikesFromNeuralData(tr.NeuralData, tr.NeuralDataTimes);

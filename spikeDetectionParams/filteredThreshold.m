@@ -4,6 +4,7 @@ classdef filteredThreshold < spikeDetectionParam
         freqLowHi = [200 10000]
         minmaxVolts
         thresholdVolts
+        thresholdVoltsSTD
         waveformWindowMs = 1.5
         peakWindowMs = 0.6
         alignMethod = 'atPeak'
@@ -36,8 +37,13 @@ classdef filteredThreshold < spikeDetectionParam
                 case 2
                     out.thresholdVolts = varargin{2};
                 case 3
-                    out.thresholdVolts = varargin{2};
                     out.thresholdMethod = varargin{3};
+                    switch upper(out.thresholdMethod)
+                        case 'STD'
+                            out.thresholdVoltsSTD = varargin{2};
+                        case 'RAW'
+                            out.thresholdVolts = varargin{2};
+                    end
             end
         end
         
@@ -47,6 +53,7 @@ classdef filteredThreshold < spikeDetectionParam
                     disp('doing nothing')
                 case 'STD'
                     if nargin==2
+                        % wrong
                         means = varargin{1}(1,:);
                         stds =  varargin{1}(2,:);
                         thrV = par.thresholdVolts;
@@ -57,9 +64,29 @@ classdef filteredThreshold < spikeDetectionParam
             end
         end
         
+        function [loThresh, hiThresh, par] = getThresholds(par,filteredSignal)
+            switch upper(par.thresholdMethod)
+                case 'STD'
+                    mFilt = mean(filteredSignal);
+                    sFilt = std(filteredSignal);
+                    
+                    loThresh = mFilt-sFilt.*par.thresthresholdVoltsSTD;
+                    hiThresh = mFilt+sFilt.*par.thresthresholdVoltsSTD;
+                    
+                    par.thresholdVolts = [loThresh; hiThresh];
+                case 'RAW'
+                    loThresh = par.thresholdVolts(1,:);
+                    hiThresh = par.thresholdVolts(2,:);
+                    
+                    % calculate and populate STD data
+                    stdFilt = std(filteredSignal);
+                    
+                    par.thresholdVoltsSTD = (hiThresh-loThresh)./stdFilt;
+                    
+            end
+        end
+        
         function [spikes, spikeWaveforms, spikeTimestamps] = detectSpikesFromNeuralData(par, neuralData, neuralDataTimes)
-            loThresh = par.thresholdVolts(1,:);
-            hiThresh = par.thresholdVolts(2,:);
             
             N=round(min(par.samplingFreq/200,floor(size(neuralData,1)/3)));
             [b,a]=fir1(N,2*par.freqLowHi/par.samplingFreq);
@@ -72,6 +99,7 @@ classdef filteredThreshold < spikeDetectionParam
             end
             filteredSignal=filtfilt(b,a,neuralData);
             
+            [loThresh,hiThresh,par] = getThresholds(par,filteredSignal);
             
             spkBeforeAfterMS=[par.peakWindowMs par.waveformWindowMs-par.peakWindowMs];
             spkSampsBeforeAfter=round(par.samplingFreq*spkBeforeAfterMS/1000);
@@ -112,7 +140,6 @@ classdef filteredThreshold < spikeDetectionParam
             spikeWaveforms=spikeWaveforms(reorderedInds,:,:);
             spikes = spikes(reorderedInds);
 
-            keyboard
             % support for lockout
             if par.lockoutDurMs>0  % ## NOTE: changing order of channels sometimes can slightly change # of spikes blocked
                 blocked=find(diff([0; spikeTimestamps])<par.lockoutDurMs/1000);
