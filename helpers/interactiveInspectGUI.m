@@ -489,7 +489,7 @@ minimumTimeToEstimateFiringRate = 1;% seconds
 
 for clustNum = 1:length(handles.trode.spikeRankedCluster)
     if clusterVisibilityValues(clustNum)
-        spkTs=handles.trode.spikeTimeStamps(handles.trode.spikeAssignedCluster==clustNum);
+        spkTs=handles.trode.spikeTimeStamps(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(clustNum));
         sessionDur = 0:minimumTimeToEstimateFiringRate:ceil(max(handles.trode.spikeTimeStamps));
         spikeInBin = histc(spkTs,sessionDur); 
         
