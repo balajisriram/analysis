@@ -15,7 +15,7 @@ classdef KlustaKwik <spikeSortingParam
         function s = KlustaKwik(paramName,varargin)
             s = s@spikeSortingParam(paramName);
             switch nargin
-                case 1
+                case 2
                     switch varargin{1}
                         case 'KlustaKwikStandard'
                             s.minClusters = 4;
