@@ -4,7 +4,7 @@ classdef spikeSortingParam
     end
     
     methods
-        function s = sortingParam(paramName)
+        function s = spikeSortingParam(paramName)
             s.paramName = paramName;
         end
     end
