@@ -77,8 +77,8 @@ classdef trode
         function tr = sortSpikes(tr)
             tr.spikeAssignedCluster = [];
             tr.spikeRankedCluster = [];
-
-            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.spikeModel] = tr.sortingParams.sortSpikesDetected(tr.spikeEvents, ...
+            
+            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.spikeModel] = tr.sortingParams.sortSpikesDetected( ...
                 reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans)), tr.spikeTimeStamps);           
         end
         

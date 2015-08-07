@@ -70,8 +70,8 @@ classdef filteredThreshold < spikeDetectionParam
                     mFilt = mean(filteredSignal);
                     sFilt = std(filteredSignal);
                     
-                    loThresh = mFilt-sFilt.*par.thresthresholdVoltsSTD;
-                    hiThresh = mFilt+sFilt.*par.thresthresholdVoltsSTD;
+                    loThresh = mFilt-sFilt.*par.thresholdVoltsSTD;
+                    hiThresh = mFilt+sFilt.*par.thresholdVoltsSTD;
                     
                     par.thresholdVolts = [loThresh; hiThresh];
                 case 'RAW'
@@ -84,6 +84,7 @@ classdef filteredThreshold < spikeDetectionParam
                     par.thresholdVoltsSTD = (hiThresh-loThresh)./stdFilt;
                     
             end
+            
         end
         
         function [spikes, spikeWaveforms, spikeTimestamps] = detectSpikesFromNeuralData(par, neuralData, neuralDataTimes)
@@ -97,13 +98,16 @@ classdef filteredThreshold < spikeDetectionParam
                 spikeTimestamps = [];
                 return;
             end
+            
+            
             filteredSignal=filtfilt(b,a,neuralData);
+            
             
             [loThresh,hiThresh,par] = getThresholds(par,filteredSignal);
             
+            
             spkBeforeAfterMS=[par.peakWindowMs par.waveformWindowMs-par.peakWindowMs];
             spkSampsBeforeAfter=round(par.samplingFreq*spkBeforeAfterMS/1000);
-            
             
             % find spike events
             tops = [];
@@ -113,8 +117,8 @@ classdef filteredThreshold < spikeDetectionParam
             for i = 1:size(neuralData,2)
                 top = find([false; diff(filteredSignal(:,i)>hiThresh(i))>0]);
                 bottom = find([false; diff(filteredSignal(:,i)<loThresh(i))>0]);
-                topAmountAllChan = [topAmountAllChan i*ones(size(top))];
-                botAmountAllChan = [botAmountAllChan i*ones(size(bottom))];   % ## makes matrix that keeps track of how many times threshold
+                topAmountAllChan = [topAmountAllChan makerow(i*ones(size(top)))];
+                botAmountAllChan = [botAmountAllChan makerow(i*ones(size(bottom)))];   % ## makes matrix that keeps track of how many times threshold
                 tops = [tops;top];                                      %    is crossed per channel.
                 bottoms = [bottoms;bottom];
             end
@@ -165,6 +169,7 @@ classdef filteredThreshold < spikeDetectionParam
             % our remaining problem is if the decaying portion of the spike has high freq noise that causes it to recross thresh and get counted again, so need to look in past to see
             % if we are on the tail of a previous spk -- but this should get clustered away anyway because there's no spike-like peak in the immediate period following the crossing.
             % ie the peak is in the past, so it's a different shape, therefore a different cluster
+            
             maxPeakSamps=round(sampRate*maxMSforPeakAfterThreshCrossing/1000);
             
             spkLength=sum(spkSampsBeforeAfter)+1;
@@ -223,7 +228,8 @@ classdef filteredThreshold < spikeDetectionParam
                 group = nan(length(groupPts),spkLength,size(data,2));
                 for i = 1:size(data,2)
                     %error('not sure this works');
-                    group(:,:,i) = filt(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));
+                    f = filt(:,i);
+                    group(:,:,i) = f(repmat(groupPts,1,spkLength)+repmat(spkPts,length(groupPts),1));
                 end
                 
 %                 for i =  1:size(data,2)     % ## after groupPts is centered on peak for specific channel spike was found cycle through
