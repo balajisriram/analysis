@@ -16,7 +16,7 @@ for fInd=1:length(featureList)
             nrDatapoints=size(data,2);
             features=[features data];
         case 'tenPCs'
-            [pc,score,latent,tsquare] = princomp(data);
+            [pc,score,latent,tsquare] = pca(data);
             nrDatapoints=nrDatapoints+10; %first 10 PCs
             features=[features score(:,1:10)];
             details.tenPCs.pc = pc(:,1:10);

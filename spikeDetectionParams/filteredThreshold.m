@@ -123,9 +123,13 @@ classdef filteredThreshold < spikeDetectionParam
                 bottoms = [bottoms;bottom];
             end
             
-            [tops,    topTimes]   =filteredThreshold.extractPeakAligned(tops,1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, topAmountAllChan);
-            [bottoms, bottomTimes]=filteredThreshold.extractPeakAligned(bottoms,-1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, botAmountAllChan);
             
+            try
+                [tops,    topTimes]   =filteredThreshold.extractPeakAligned(tops,1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, topAmountAllChan);
+                [bottoms, bottomTimes]=filteredThreshold.extractPeakAligned(bottoms,-1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, botAmountAllChan);
+            catch ex
+                keyboard
+            end
             
             %maybe sort the order...
             spikes=[topTimes;bottomTimes];
@@ -179,7 +183,9 @@ classdef filteredThreshold < spikeDetectionParam
             % make sure that we can always find all the data for spike
             % before extracting it for analysis. spike from the beginning
             % and end are removed
-            groupPts=group((group+spkLength-1)<length(filt) & group-ceil(spkLength/2)>0); 
+            whichDeleted = (group+spkLength-1)<length(filt) & group-ceil(spkLength/2)>0;
+            groupPts=group(whichDeleted);             
+            fromChannel(~whichDeleted) = [];
             
             % this is ugly. but works. computationally identical.
             if length(groupPts) ==1

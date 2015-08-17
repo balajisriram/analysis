@@ -41,7 +41,7 @@ classdef trode
             tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik           
         end %trode  
         
-        function tr = detectSpikes(tr,dataPath)
+        function tr = detectSpikes(tr,dataPath, session)
             tr.NeuralData = [];
             tr.NeuralDataTimes = [];
             tr.Mean = [];
@@ -54,7 +54,11 @@ classdef trode
                 else
                     [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data([dataPath,'\',a.name]);
                     if any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation)
-                        error('bad timestamps! why?');
+                        warning('bad timestamps! why?');
+                        det.identifier = 'trode.detectSpikes';
+                        det.message = 'bad timestamps! why?';
+                        det.data = find(any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation));
+                        session = session.addToHistory('Warning',det);
                     end
                     tr.NeuralData = [tr.NeuralData rawData];
                     tr.NeuralDataTimes = rawTimestamps;

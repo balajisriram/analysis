@@ -45,7 +45,7 @@ classdef KlustaKwik <spikeSortingParam
        
         function [assignedClusters, rankedClusters, spikeModel] = sortSpikesDetected(par, spikeWaveforms, spikeTimestamps)
             currentDir=pwd;
-            tempDir=fullfile(currentDir,'KlustaKwik');
+            tempDir=fullfile(currentDir,'helpers','KlustaKwik');
             cd(tempDir);
 
             [features, nrDatapoints, spikeModel.featureDetails] = calculateFeatures(spikeWaveforms,par.featureList);
@@ -140,7 +140,7 @@ classdef KlustaKwik <spikeSortingParam
 
             % create the model files from the model file
             modelFilePath = fullfile(tempDir,'temp.model.1');
-            spikeModel.clusteringModel = sortingParam.klustaModelTextToStruct(modelFilePath);
+            spikeModel.clusteringModel = par.klustaModelTextToStruct(modelFilePath);
             spikeModel.clusteringMethod = 'KlustaKwik';
             spikeModel.featureList = par.featureList;
 
