@@ -47,7 +47,15 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
-        function session = process(session)            
+        function session = process(session) 
+            
+            currDir = pwd; 
+            if strcmp(currDir, 'C:\Users\Ghosh\Desktop\analysis') ~= 1
+                error('Running from wrong folder, must run from analysis base folder');
+            end
+
+            
+            
             % 1. get events data (##pass in correct file)
             session.eventData = eventData(session.trialDataPath);
             
@@ -55,24 +63,41 @@ classdef Session
             session.trodes = session.electrode.getPotentialTrodes(session.sessionPath,session.sessionFolder);
             
             % 3. detect spikes
-            disp('Detecting Spikes ... ');
-            session = session.detectSpikes();
+            try
+                disp('Detecting Spikes ... ');
+                session = session.detectSpikes();
+            catch ex
+                session = session.addToHistory('Error',ex);
+                fName = saveSession(session);
+                keyboard
+            end
             
+            %saves session just in case failure before sorting occurs
+            fName = saveSession(session);
             
             % 4. sort spikes
-            session = session.sortSpikes();
+            try
+                disp('Sorting Spikes ... ');
+                session = session.sortSpikes();
+            catch ex
+                session = session.addToHistory('Error',ex);
+                fName = saveSession(session);
+                keyboard
+            end
         end      
         
         function session = detectSpikes(session)
             for i = 1:length(session.trodes)
                 dataPath = fullfile(session.sessionPath,session.sessionFolder);
                 try
-                    session.trodes(i) = session.trodes(i).detectSpikes(dataPath);
-                    det.identifier = 'Session.detectSpikes';
+                    session.trodes(i) = session.trodes(i).detectSpikes(dataPath, session);
+                    det.identifier = ['Session.detectSpikes' ,int2str(now)];
                     det.message = sprintf('detected on trode %d of %d',i, length(session.trodes));
-                    session.addToHistory('Completed',det)
+                    session = session.addToHistory('Completed',det);
                 catch ex
-                    session.addToHistory('Error',ex)
+                    session = session.addToHistory('Error',ex);
+                    fName = saveSession(session);
+                    keyboard
                 end
             end
         end
@@ -81,17 +106,20 @@ classdef Session
             for i = 1:length(session.trodes)
                 try
                     session.trodes(i) = session.trodes(i).sortSpikes();
-                    det.identifier = 'Session.sortSpikes';
+                    det.identifier = ['Session.sortSpikes ', int2str(now)];
                     det.message = sprintf('sorted on trode %d of %d',i, length(session.trodes));
-                    session.addToHistory('Completed',det)
+                    session = session.addToHistory('Completed',det);
+                    fName = saveSession(session);          %saves session between each sort just in case fails.
                 catch ex
-                    session.addToHistory('Error',ex)
+                    session = session.addToHistory('Error',ex);
+                    fName = saveSession(session);
                 end
             end
+            fName = saveSession(session);
         end
         
         function fileName = saveSession(sess)  % save session as a struct to mat file
-            fileName = [sess.sessionFolder,'___',int2str(sess.timeStamp),'.mat'];
+            fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end
         
@@ -116,7 +144,10 @@ classdef Session
                     sess.history{end+1} = {'Err.',details.identifier,details.message,details.stack};
                 case 'completed'
                     sess.history{end+1} = {'Comp.',details.identifier,details.message};
+                case 'warning'
+                    sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
             end
         end
+                
     end
 end
