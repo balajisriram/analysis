@@ -191,26 +191,6 @@ classdef Session
                     sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
             end
         end
-        
-        function [rastor] = getRastor(basisEvent, plottedEvent, histSize, resolution)
-            % getRastor function finds correlations of event occurences between two
-            % data sets
-
-            % Parameters:
-            %   -basisEvent:   struct with fields: type, onOff, filter, data
-            %                  Finds what events occur in plotted Events at correlating
-            %                  times in basisEvents
-            %   -plottedEvent: raw data such as single unit or event data etc. Goes to
-            %                  specific indices in plottedEvent based on basisEvent to
-            %                  look for correlations.
-            %   -histSize:     [x y] where x is indices before event and y is after
-            %   -resolution:   in ms, graph how many ms of precision?
-
-            if ~isfield(basisEvent,'data')
-                error('no basisEvent.data');
-            end
-
-        end
                 
     end
 end
