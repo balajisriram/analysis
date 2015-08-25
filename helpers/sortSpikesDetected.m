@@ -246,7 +246,7 @@ switch upper(spikeSortingMethod)
             end
         catch
             warning('huh? no .clu?')
-            keyboard
+            %keyboard
         end
         
         % throw away first element of assignedClusters - the first line of the cluster file is the number of clusters found

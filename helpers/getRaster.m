@@ -13,6 +13,7 @@ function [basisIndices, raster] = getRaster(sess, basisEvent, plottedEvent, hist
 %                  look for correlations.
 %   -histSize:     [x y] where x is samples before event and y is after
 
+
 %% checks basisEvent to make sure fields set correctly grab relevant basis data
 if ~isfield(basisEvent,'type')
     error('no basisEvent.type');
@@ -96,6 +97,18 @@ else
     error('plottedEvent.type must be EVENTDATA, CLUSTER, or SINGLEUNIT');
 end
 
+%% get bad timestamps if any
+badTS = [];
+for i = 2:length(sess.history) %skips first trivial history
+    if strcmp(sess.history{i}{2},'BAD_TIMESTAMPS')==1
+        if isempty(badTS)
+            badTS = sess.history{i}{3}.data*30000;
+        else
+            badTS = [badTS;sess.history{i}{3}.data*30000];
+        end
+    end
+end
+
 %% use filter if set to narrow down points of interest from basisEvent
 if basisEvent.filter ~= -1
     blockedInd = 1:length(basisTimes);
@@ -114,7 +127,7 @@ plottedIndices = sort(plottedTimes*30000);
 %% find corresponding points in plottedEvent using histSize
 percentComplete = 0;
 modNumber = ceil(size(basisIndices,1)/10);
-raster = zeros(size(basisIndices,1),histSize(1)+histSize(2)+1);
+raster = sparse(size(basisIndices,1),histSize(1)+histSize(2)+1);
 for i = 1:size(basisIndices,1)
      if mod(i,modNumber)==1
          disp([num2str(percentComplete), '% Complete']);
@@ -130,6 +143,16 @@ for i = 1:size(basisIndices,1)
             warning(['Index ', num2str(firstInd), ' out of range']);
         end
     end
+end
+
+%warn if any assumptions were made using bad timestamps
+for i = 1:size(badTS,1)
+    if (any(basisIndices-histSize(1)>badTS(i,1)) & any(basisIndices-histSize(1)<badTS(i,2)))
+        warning('Making False Assumptions About Time Where Data Is Lost');
+    end
+    if (any(basisIndices+histSize(2)>badTS(i,1)) & any(basisIndices+histSize(2)<badTS(i,2)))
+        warning('Making False Assumptions About Time Where Data Is Lost');
+    end   
 end
 
 %return list of correlations as rastor

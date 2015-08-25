@@ -69,7 +69,7 @@ classdef Session
             catch ex
                 session = session.addToHistory('Error',ex);
                 fName = saveSession(session);
-                keyboard
+                %keyboard
             end
             
             %saves session just in case failure before sorting occurs
@@ -82,7 +82,7 @@ classdef Session
             catch ex
                 session = session.addToHistory('Error',ex);
                 fName = saveSession(session);
-                keyboard
+                %keyboard
             end
         end      
         
@@ -90,14 +90,21 @@ classdef Session
             for i = 1:length(session.trodes)
                 dataPath = fullfile(session.sessionPath,session.sessionFolder);
                 try
-                    session.trodes(i) = session.trodes(i).detectSpikes(dataPath, session);
-                    det.identifier = ['Session.detectSpikes' ,int2str(now)];
+                    [session.trodes(i), warn] = session.trodes(i).detectSpikes(dataPath, session);
+                    det.identifier = ['Session.detectSpikes ' ,datestr(now)];
                     det.message = sprintf('detected on trode %d of %d',i, length(session.trodes));
                     session = session.addToHistory('Completed',det);
+                
+                    if warn.flag==1
+                        det.identifier = ['BAD_TIMESTAMPS'];
+                        det.message = warn;
+                        session = session.addToHistory('Completed',det);
+                    end
+                    
                 catch ex
                     session = session.addToHistory('Error',ex);
                     fName = saveSession(session);
-                    keyboard
+                    %keyboard
                 end
             end
         end
@@ -106,7 +113,7 @@ classdef Session
             for i = 1:length(session.trodes)
                 try
                     session.trodes(i) = session.trodes(i).sortSpikes();
-                    det.identifier = ['Session.sortSpikes ', int2str(now)];
+                    det.identifier = ['Session.sortSpikes ', datestr(now)];
                     det.message = sprintf('sorted on trode %d of %d',i, length(session.trodes));
                     session = session.addToHistory('Completed',det);
                     fName = saveSession(session);          %saves session between each sort just in case fails.
@@ -117,6 +124,23 @@ classdef Session
             end
             fName = saveSession(session);
         end
+        
+        function session = inspectSpikes(session)
+            for i = 1:length(session.trodes)
+                try
+                    session.trodes(i) = session.trodes(i).inspectSpikes();
+                    det.identifier = ['Session.inspectSpikes ', datestr(now)];
+                    det.message = sprintf('inspected on trode %d of %d',i, length(session.trodes));
+                    session = session.addToHistory('Completed',det);
+                    fName = saveSession(session);          %saves session between each sort just in case fails.
+                catch ex
+                    session = session.addToHistory('Error',ex);
+                    fName = saveSession(session);
+                end
+            end
+            fName = saveSession(session);
+        end
+        
         
         function fileName = saveSession(sess)  % save session as a struct to mat file
             fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
@@ -147,6 +171,26 @@ classdef Session
                 case 'warning'
                     sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
             end
+        end
+        
+        function [rastor] = getRastor(basisEvent, plottedEvent, histSize, resolution)
+            % getRastor function finds correlations of event occurences between two
+            % data sets
+
+            % Parameters:
+            %   -basisEvent:   struct with fields: type, onOff, filter, data
+            %                  Finds what events occur in plotted Events at correlating
+            %                  times in basisEvents
+            %   -plottedEvent: raw data such as single unit or event data etc. Goes to
+            %                  specific indices in plottedEvent based on basisEvent to
+            %                  look for correlations.
+            %   -histSize:     [x y] where x is indices before event and y is after
+            %   -resolution:   in ms, graph how many ms of precision?
+
+            if ~isfield(basisEvent,'data')
+                error('no basisEvent.data');
+            end
+
         end
                 
     end

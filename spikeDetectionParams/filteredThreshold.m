@@ -87,7 +87,7 @@ classdef filteredThreshold < spikeDetectionParam
             
         end
         
-        function [spikes, spikeWaveforms, spikeTimestamps] = detectSpikesFromNeuralData(par, neuralData, neuralDataTimes)
+        function [spikes, spikeWaveforms, spikeTimestamps, par] = detectSpikesFromNeuralData(par, neuralData, neuralDataTimes)
             
             N=round(min(par.samplingFreq/200,floor(size(neuralData,1)/3)));
             [b,a]=fir1(N,2*par.freqLowHi/par.samplingFreq);
@@ -128,7 +128,7 @@ classdef filteredThreshold < spikeDetectionParam
                 [tops,    topTimes]   =filteredThreshold.extractPeakAligned(tops,1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, topAmountAllChan);
                 [bottoms, bottomTimes]=filteredThreshold.extractPeakAligned(bottoms,-1,par.samplingFreq,spkSampsBeforeAfter,filteredSignal,neuralData, botAmountAllChan);
             catch ex
-                keyboard
+                %keyboard
             end
             
             %maybe sort the order...
@@ -190,7 +190,7 @@ classdef filteredThreshold < spikeDetectionParam
             % this is ugly. but works. computationally identical.
             if length(groupPts) ==1
                 warning('may not work');
-                keyboard
+                %keyboard
                 group = data(repmat(groupPts,1,maxPeakSamps)+repmat(0:maxPeakSamps-1,length(groupPts),1));
                 group = group';
                 [junk loc]=max(flip*group,[],2);
