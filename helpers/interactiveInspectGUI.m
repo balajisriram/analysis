@@ -128,15 +128,6 @@ function hist10MSAxis_CreateFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 end
-% hist10000MSAxis
-% --- Executes during object creation, after setting all properties.
-
-% function hist10000MSAxis_CreateFcn(hObject, eventdata, handles)
-% % hObject    handle to hist10000MSAxis (see GCBO)
-% % eventdata  reserved - to be defined in a future version of MATLAB
-% % handles    empty - handles not created until after all CreateFcns called
-% end
-
 % trodesMenu
 % --- Executes during object creation, after setting all properties.
 function trodesMenu_CreateFcn(hObject, eventdata, handles)
@@ -206,12 +197,12 @@ featureAxis_UpdateFcn(hObject, eventdata, handles);
 waveAxis_UpdateFcn(hObject, eventdata, handles);
 waveMeansAxis_UpdateFcn(hObject, eventdata, handles);
 linkaxes([handles.waveAxis handles.waveMeansAxis],'xy');
-%hist10000MSAxis_UpdateFcn(hObject, eventdata, handles);                 % ##zzz removed, no longer use
 hist10MSAxis_UpdateFcn(hObject, eventdata, handles);
 firingRateAxis_UpdateFcn(hObject, eventdata, handles);
 barChartWhole_UpdateFcn(hObject, eventdata, handles);
 barChartPart_UpdateFcn(hObject, eventdata, handles);
 end
+
 % featureAxis
 function featureAxis_UpdateFcn(hObject, eventdata, handles)
 
@@ -277,14 +268,30 @@ clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spik
 % now plot
 for i=1:length(handles.trode.spikeRankedCluster)
     thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+    sizspikeWaveforms = size(handles.trode.spikeWaveForms);
+    if length(sizspikeWaveforms)==3
+        numChans = sizspikeWaveforms(3);
+        numSamps = sizspikeWaveforms(2);
+    else
+        numChans = 1;
+        numSamps = sizspikeWaveforms(2);
+    end
     if ~isempty(thisCluster) && clusterVisibilityValues(i)
-        plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
+        switch numChans
+            case 1
+                plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
+            otherwise
+                for j = 1:numChans
+                    
+                    plot((j-1)*numSamps+(1:numSamps),handles.trode.spikeWaveForms(thisCluster,:,j)','color',colors(i,:));
+                end
+        end
     end
 end
 
 title('waveforms');
 set(gca,'XTick',[]);
-axis([1 size(handles.trode.spikeWaveForms,2)  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
+axis([1 numChans*numSamps  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
 end
 
 
@@ -354,7 +361,7 @@ maxProbPart = 0;
 for i = 1:length(handles.trode.spikeRankedCluster)
     if clusterVisibilityValues(i)
         thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
-        ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
+        ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster)*1000); % all spike timestamps are in seconds and we want MS here
         
         % part
         edges = linspace(0,10,100);
@@ -382,92 +389,6 @@ else
 end
 end
 
-% hist10000MSAxis
-% function hist10000MSAxis_UpdateFcn(hObject, eventdata, handles)
-% % select the axis
-% axes(handles.hist10000MSAxis); cla; hold on;
-% 
-% % now check if worth plotting
-% if isempty(handles.trode.spikeEvents)
-%     text(0.5,0.5,'no spikes introde','HorizontalAlignment','center','VerticalAlignment','middle');
-%     return
-% end
-% 
-% 
-% 
-% % set the colors
-% colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
-% % colors(1,:) = [1 0 0]; %red
-% 
-% clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
-% 
-% 
-% %inter-spike interval distribution
-% existISILess10000MS = false;
-% maxEdgeTot = 0;
-% maxProbTot = 0;
-% % for other spikes
-% for i = 1:length(handles.trode.spikeRankedCluster)
-%     if clusterVisibilityValues(i)
-%         thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
-%         ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
-%         
-%         % total
-%         edges = linspace(0,10000,100);
-%         count=histc(ISIThisCluster,edges);
-%         if sum(count)>0
-%             existISILess10000MS = true;
-%             prob=count/sum(count);
-%             ISIfill = fill([edges(1); edges(:); edges(end)],[0; prob(:); 0],colors(i,:));
-%             set(ISIfill,'edgeAlpha',0,'faceAlpha',.5);
-%             maxEdgeTot = max(maxEdgeTot,max(edges));
-%             maxProbTot = max(maxProbTot,max(prob));
-%         end
-%     end
-% end
-% 
-% if existISILess10000MS
-%     axis([0 maxEdgeTot 0 maxProbTot]);
-%     text(maxEdgeTot/2,maxProbTot,'ISI<10s','HorizontalAlignment','center','VerticalAlignment','Top')
-% else
-%     axis([0 10000 0 1]);
-%     text(10000,1,'no ISI < 10 s','HorizontalAlignment','right','VerticalAlignment','Top');
-% end
-% end
-% 
-% %inter-spike interval distribution
-% existISILess10000MS = false;
-% maxEdgeTot = 0;
-% maxProbTot = 0;
-% % for other spikes
-% for i = 1:length(handles.trode.spikeRankedCluster)
-%     if clusterVisibilityValues(i)
-%         thisCluster = (handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
-%         ISIThisCluster = diff(handles.trode.spikeTimeStamps(thisCluster));
-%         
-%         % total
-%         edges = linspace(0,10000,100);
-%         count=histc(ISIThisCluster,edges);
-%         if sum(count)>0
-%             existISILess10000MS = true;
-%             prob=count/sum(count);
-%             ISIfill = fill([edges(1); edges(:); edges(end)],[0; prob(:); 0],colors(i,:));
-%             set(ISIfill,'edgeAlpha',0,'faceAlpha',.5);
-%             maxEdgeTot = max(maxEdgeTot,max(edges));
-%             maxProbTot = max(maxProbTot,max(prob));
-%         end
-%     end
-% end
-% 
-% if existISILess10000MS
-%     axis([0 maxEdgeTot 0 maxProbTot]);
-%     text(maxEdgeTot/2,maxProbTot,'ISI<10s','HorizontalAlignment','center','VerticalAlignment','Top')
-% else
-%     axis([0 10000 0 1]);
-%     text(10000,1,'no ISI < 10 s','HorizontalAlignment','right','VerticalAlignment','Top');
-% end
-% end
-
 % firingRateAxis
 function firingRateAxis_UpdateFcn(hObject, eventdata, handles)
 
@@ -491,12 +412,12 @@ for clustNum = 1:length(handles.trode.spikeRankedCluster)
     if clusterVisibilityValues(clustNum)
         spkTs=handles.trode.spikeTimeStamps(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(clustNum));
         sessionDur = 0:minimumTimeToEstimateFiringRate:ceil(max(handles.trode.spikeTimeStamps));
-        spikeInBin = histc(spkTs,sessionDur); 
+        spikeInBin = histc(spkTs,sessionDur);
         
         plot(sessionDur,spikeInBin,'color',colors(clustNum,:));
     end
 end
-
+set(gca,'xlim',[0 ceil(max(handles.trode.spikeTimeStamps))],'ylim',[-3 40]);
 end
 
 % populating the trodesMenu popup menu
@@ -509,14 +430,15 @@ currTrodeNum = find(strcmp(handles.currTrode,trodesAvail));
 set(handles.trodesMenu,'String',trodesAvail);
 set(handles.trodesMenu,'Value',currTrodeNum);
 end
+
 % initialize the clusterPanel
 function clusterListPanel_Initialize(hObject, eventdata, handles)
 
-try 
+try
     length(handles.previouslyVisible);
 catch ex
     % if it fails by not finding the .previouslyvisible list
-    handles.previouslyVisible = handles.trode.spikeRankedCluster;
+    handles.previouslyVisible = [];
 end
 
 whichTrode = handles.trode;
@@ -555,15 +477,13 @@ handles.cMap = colors;
 guidata(hObject,handles);
 % colors(1,:) = [1,0,0];
 for i = 1:length(rankedClusters)
-    if length(find(handles.previouslyVisible == i)) > 0
-        handles.clusterListHandles(i) = uicontrol('Parent',handles.clusterListPanel,'Style','checkbox',...
-            'String',sprintf('%d',rankedClusters(i)),'Value',1,'Units','normalized',...
-            'Position',[([0 -0.15]+positionOfCheckBoxes(i,:)) 0.12 0.15],'ForegroundColor',colors(i,:),'CallBack',{@updateAllAxes,handles});
-    else 
-        handles.clusterListHandles(i) = uicontrol('Parent',handles.clusterListPanel,'Style','checkbox',...
-            'String',sprintf('%d',rankedClusters(i)),'Value',0,'Units','normalized',...
-            'Position',[([0 -0.15]+positionOfCheckBoxes(i,:)) 0.12 0.15],'ForegroundColor',colors(i,:),'CallBack',{@updateAllAxes,handles});
-    end
+    
+    clusterName = sprintf('%d',rankedClusters(i));
+    visible = any(handles.previouslyVisible ==i);
+    handles.clusterListHandles(i) = uicontrol('Parent',handles.clusterListPanel,'Style','checkbox',...
+        'String',clusterName,'Value',visible,'Units','normalized',...
+        'Position',[([0 -0.15]+positionOfCheckBoxes(i,:)) 0.15 0.15],'ForegroundColor',colors(i,:),'CallBack',{@updateAllAxes,handles});
+    
 end
 
 % update the guidata
@@ -649,160 +569,18 @@ end
 end
 
 %% Callbacks are set here
-% --- Executes on selection change in trodesMenu.
-function trodesMenu_Callback(hObject, eventdata, handles)
-% hObject    handles to trodesMenu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-newTrodeNum = get(handles.trodesMenu,'Value');
-handles.currTrode = createTrodeName(handles.trodes{newTrodeNum});
-
-% update handles to reflect current knowledge
-guidata(hObject, handles);
-
-% initialize the clusterList panel
-clusterListPanel_Initialize(hObject, eventdata, handles)
-
-% now update the axes
-updateAllAxes(hObject, eventdata, handles);
-% Hints: contents = get(hObject,'String') returns trodesMenu contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from trodesMenu
-end
-
-% --- Executes on button press in sortSpikesButton.
-function sortSpikesButton_Callback(hObject, eventdata, handles)
-% hObject    handle to sortSpikesButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% get the spikes data
-whichTrode = handles.currTrode;
-spikes = whichTrode.spikeEvents;
-spikeTimestamps = whichTrode.spikeTimeStamps;
-spikeWaveForms = whichTrode.waveformsToCluster;
-spikeSortingParams = handles.spikeSortingParams.(whichTrode);
-rankedClustersCell = whichTrode.spikeRankedCluster;
-assignedClusters = whichTrode.spikeAssignedCluster;
-
-% sometimes rankedClusters is a Cell array. Just
-if iscell(rankedClustersCell) %(happens when we call after sorting on every chunk)
-    rankedClusters = [];
-    for i = 1:length(rankedClustersCell)
-        rankedClusters = unique([rankedClusters;makerow(rankedClustersCell{i})']);
-    end
-else
-    rankedClusters = rankedClustersCell;
-end
-
-%which clusters To analyze?
-clusterVisibilityValues = [];
-clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
-clusterVisibilityValuesUnordered = get(get(handles.clusterListPanel,'Children'),'Value');
-for i = 1:length(rankedClusters)
-%     if length(rankedClusters)~=1
-        index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
-        clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
-%     else
-%         clusterVisibilityValues = clusterVisibilityValuesUnordered;
-%     end
-end
-
-
-clustersToSort = rankedClusters(find(clusterVisibilityValues));
-theseSpikes = ismember(assignedClusters,clustersToSort);
-spikesToSort = spikes(theseSpikes);
-spikeWaveformsToSort = spikeWaveForms(theseSpikes,:);
-spikeTimeStampsToSort = spikeTimestamps(theseSpikes);
-
-% now remove those clusters
-rankedClusters(find(clusterVisibilityValues)) = [];
-
-if ~isempty(rankedClusters)
-    maxClusterNumber = max(rankedClusters);
-else
-    maxClusterNumber = 0;
-end
-
-% actual call to sort
-[newAssignedClusters newRankedClusters]= sortSpikesDetected(spikesToSort, spikeWaveformsToSort,spikeTimeStampsToSort,spikeSortingParams);
-spikeDetails = postProcessSpikeClusters(newAssignedClusters,newRankedClusters,spikeSortingParams,spikeWaveformsToSort);
-
-handles.currentSpikeRecord.(whichTrode).assignedClusters(theseSpikes) = newAssignedClusters+maxClusterNumber;
-handles.currentSpikeRecord.(whichTrode).rankedClusters = [rankedClusters(:); newRankedClusters(:)+maxClusterNumber];
-handles.currentSpikeRecord.(whichTrode).processedClusters(theseSpikes) = spikeDetails.processedClusters;
-guidata(hObject, handles);
-clusterListPanel_Initialize(hObject, eventdata, handles);
-updateAllAxes(hObject, eventdata, handles);
-end
 
 % --- Executes on button press in saveButton.
 function saveButton_Callback(hObject, eventdata, handles)
 % hObject    handle to saveButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-if ~~isequal(handles.currentSpikeRecord,handles.originalSpikeRecord)||...
-        ~isequal(handles.spikeSortingParams,handles.originalSpikeSortingParams)||...
-        ~isequal(handles.spikeSortingParams,handles.originalSpikeDetectionParams)||...
-        ~isequal(handles.trodes,handles.originalTrodes)
-    question = {'All changes made to currentspikeRecord will be ','saved in originalSpikerecord. Continue?'};
-    option1 = 'Yes';
-    option2 = 'No';
-    saveChoice = questdlg(question,option1,option2);
-    switch saveChoice
-        case 'Yes'
-            handles.originalSpikeRecord = handles.currentSpikeRecord;
-            handles.originalSpikeRecord = handles.currentSpikeRecord;
-            handles.originalTrodes = handles.trodes;
-            handles.originalSpikeDetectionParams = handles.spikeDetectionParams;
-            handles.originalSpikeSortingParams = handles.spikeSortingParams;
-            guidata(hObject,handles);
-        case 'No'
-            % do nothing
-    end
-end
+disp('automatically saved now');
 end
 
 % --- Executes on button press in saveAndExitButton.
 function saveAndExitButton_Callback(hObject, eventdata, handles)
-% hObject    handle to saveAndExitButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% changes to spikeRecord
-if ~isequal(handles.currentSpikeRecord,handles.originalSpikeRecord)||...
-        ~isequal(handles.spikeSortingParams,handles.originalSpikeSortingParams)||...
-        ~isequal(handles.spikeSortingParams,handles.originalSpikeDetectionParams)||...
-        ~isequal(handles.trodes,handles.originalTrodes)
-    question = {'Changes have been made to currentSpikeRecord/spikeSortingParams','spikeSortingParams/trodes. Save changes?'};
-    option1 = 'Yes';
-    option2 = 'No';
-    saveChoice = questdlg(question,option1,option2);
-    switch saveChoice
-        case 'Yes'
-            handles.originalSpikeRecord = handles.currentSpikeRecord;
-            handles.originalTrodes = handles.trodes;
-            handles.originalSpikeDetectionParams = handles.spikeDetectionParams;
-            handles.originalSpikeSortingParams = handles.spikeSortingParams;
-            guidata(hObject,handles);
-        case 'No'
-            % do nothing
-    end
-end
-question = {'Write and exit?'};
-option1 = 'Yes';
-option2 = 'No';
-saveChoice = questdlg(question,option1,option2);
-switch saveChoice
-    case 'Yes'
-        spikeRecordFile = fullfile(handles.analysisPath,'spikeRecord.mat');
-        analysisBoundaryFile = fullfile(handles.analysisPath,'analysisBoundary.mat');
-        spikeRecord = handles.originalSpikeRecord;
-        trodes = handles.originalTrodes;
-        spikeDetectionParams = handles.originalSpikeDetectionParams;
-        spikeSortingParams = handles.originalSpikeSortingParams;
-        save(spikeRecordFile,'spikeRecord','-append');
-        save(analysisBoundaryFile,'trodes','spikeDetectionParams','spikeSortingParams','-append');
-    case 'No'
-        return
-end
+disp('automatically saved now');
 interactiveInspectGUI_ExitFcn(hObject, eventdata, handles);
 end
 
@@ -811,16 +589,7 @@ function exitButton_Callback(hObject, eventdata, handles)
 % hObject    handle to exitButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-question = 'Exit?';
-option1 = 'Yes';
-option2 = 'No';
-saveChoice = questdlg(question,option1,option2);
-switch saveChoice
-    case 'Yes'
-        % do nothing
-    case 'No'
-        return;
-end
+disp('automatically saved now');
 interactiveInspectGUI_ExitFcn(hObject, eventdata, handles);
 end
 
@@ -845,15 +614,11 @@ option2 = 'No';
 saveChoice = questdlg(question,option1,option2);
 switch saveChoice
     case 'Yes'
-        handles.currentSpikeRecord = handles.originalSpikeRecord;
-        handles.trodes = handles.originalTrodes;
-        handles.spikeDetectionParams = handles.originalSpikeDetectionParams;
-        handles.spikeSortingParams = handles.originalSpikeSortingParams;
+        handles.trode = handles.originalTrode;
     case 'No'
         return;
 end
 % reset values
-handles.currTrode = createTrodeName(handles.trodes{1});
 guidata(hObject,handles);
 %initialize the trodesMenu
 trodesMenu_Initialize(hObject, eventdata, handles);
@@ -1046,12 +811,12 @@ clusterVisibilityValues = [];
 clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
 clusterVisibilityValuesUnordered = get(get(handles.clusterListPanel,'Children'),'Value');
 for i = 1:length(rankedClusters)
-%     if length(rankedClusters)~=1
-        index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
-        clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
-%     else
-%         clusterVisibilityValues = clusterVisibilityValuesUnordered;
-%     end
+    %     if length(rankedClusters)~=1
+    index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
+    clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
+    %     else
+    %         clusterVisibilityValues = clusterVisibilityValuesUnordered;
+    %     end
 end
 
 
@@ -1078,7 +843,7 @@ end
 if existISILess10MS
     axis([0 maxEdgePart 0 maxProbPart]);
     text(maxEdgePart/2,maxProbPart,'ISI<10ms','HorizontalAlignment','center','VerticalAlignment','Top')
-    lockout=1000*39/handles.plottingInfo.samplingRate;  %why is there a algorithm-imposed minimum ISI?  i think it is line 65  detectSpikes
+    lockout=1000*39/handles.trode.detectParams.samplingFreq;
     lockout=edges(max(find(edges<=lockout)));
     plot([lockout lockout],get(gca,'YLim'),'k') %
     plot([2 2], get(gca,'YLim'),'k--')
@@ -1090,6 +855,7 @@ end
 h = warndlg('Press OK to continue'); uiwait(h);
 hist10MSAxis_UpdateFcn(hObject, eventdata, handles);
 end
+
 % --- Executes on button press in processedClusterButton.
 function processedClusterButton_Callback(hObject, eventdata, handles)
 % hObject    handle to processedClusterButton (see GCBO)
@@ -1133,6 +899,87 @@ processedClusters =  ismember(assignedClusters,rankedClusters(whichClusters));
 handles.currentSpikeRecord.(whichTrode).processedClusters=processedClusters;
 guidata(hObject,handles);
 end
+
+
+function assignnoise_ButtonDownFcn(hObject, eventdata, handles)
+% hObject    handle to mergePushButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+clusterVisibilityValues = getClusterVisibilityValues(handles,handles.trode.spikeRankedCluster);
+
+if all(~clusterVisibilityValues)
+    noClusterError = errordlg('no clusters selected for assigning to noise','no cluster error');
+    return;
+end
+
+whichClusters = find(clusterVisibilityValues);
+mergedClusterNumber = 1; % this is the default noise cluster number
+handles.trode.spikeAssignedCluster(ismember(handles.trode.spikeAssignedCluster,...
+    handles.trode.spikeRankedCluster(whichClusters))) = mergedClusterNumber;
+handles.trode.spikeRankedCluster(ismember(handles.trode.spikeRankedCluster,...
+    handles.trode.spikeRankedCluster(whichClusters))&(handles.trode.spikeRankedCluster~=mergedClusterNumber)) = [];
+
+% ##zzz sets previously visible NOTE: SETS TO INDEX NOT VALUE
+handles.previouslyVisible = find(handles.trode.spikeRankedCluster == mergedClusterNumber);
+disp(handles.previouslyVisible)
+
+guidata(hObject,handles);
+% fill up the clusters panel
+%clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% only shows merged cluster.
+clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% now update the axes
+updateAllAxes(hObject, eventdata, handles);end
+
+function processCluster_ButtonDownFcn(hObject, eventdata, handles)
+disp('processing');
+clusterVisibilityValues = getClusterVisibilityValues(handles,handles.trode.spikeRankedCluster);
+
+if length(find(clusterVisibilityValues))~=1
+    h = warndlg('Exactly one cluster should be visible'); uiwait(h);
+    return
+end
+
+clusterNumber = handles.trode.spikeRankedCluster(logical(clusterVisibilityValues));
+
+% create the single unit
+unitChans = handles.trode.chans;
+unitID = handles.trode.numUnits+1;
+
+whichSpikes = handles.trode.spikeAssignedCluster==clusterNumber;
+sU = singleUnit(unitChans,...
+    unitID,...
+    handles.trode.spikeEvents(whichSpikes),...
+    handles.trode.spikeTimeStamps(whichSpikes),...
+    handles.trode.spikeWaveForms(whichSpikes,:,:),...
+    handles.trode.detectParams.samplingFreq);
+
+handles.trode = handles.trode.addUnit(sU);
+
+handles.trode.spikeEvents(whichSpikes) = [];
+handles.trode.spikeWaveForms(whichSpikes,:,:) = [];
+handles.trode.spikeTimeStamps(whichSpikes) = [];
+handles.trode.spikeAssignedCluster(whichSpikes) = [];
+handles.trode.spikeRankedCluster(handles.trode.spikeRankedCluster==clusterNumber) = [];
+
+handles.previouslyVisible = []; % default to viewing nothing
+disp(handles.previouslyVisible)
+
+guidata(hObject,handles);
+% fill up the clusters panel
+%clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% only shows merged cluster.
+clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% now update the axes
+updateAllAxes(hObject, eventdata, handles);
+
+end
+
 
 %% HELPER FUNCTIONS
 function x = makerow(x)
@@ -1180,33 +1027,6 @@ for i = 1:n
 end
 end
 
-%% not used
-function [whichTrode spikes spikeWaveForms assignedClusters spikeTimestamps ...
-    trialNumForSpikes rankedClusters processedClusters spikeModel] = ...
-    getSpikeData(handles)
-whichTrode = handles.currTrode;
-spikes = whichTrode.spikeEvents;
-spikeWaveForms =  whichTrode.waveformsToCluster; % ## maybe would rather use whichTrode.spikeWaveForms?
-assignedClusters = whichTrode.spikeAssignedCluster; 
-spikeTimestamps = whichTrode.spikeTimeStamps;
-trialNumForSpikes = 1; % ## not sure what to do for trial num yet
-rankedClustersCell = whichTrode.spikeRankedCluster;
-processedClusters = whichTrode.clusteredSpikes;
-spikeModel = whichTrode.spikeModel;
-
-% sometimes rankedClusters is a Cell array. Just
-if iscell(rankedClustersCell) %(happens when we call after sorting on every chunk)
-    rankedClusters = [];
-    for i = 1:length(rankedClustersCell)
-        rankedClusters = unique([rankedClusters;makerow(rankedClustersCell{i})']);
-    end
-else
-    rankedClusters = rankedClustersCell;
-end
-end
-
-%%
-
 function clusterVisibilityValues = getClusterVisibilityValues(handles,rankedClusters)
 clusterVisibilityValues = [];
 clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
@@ -1214,7 +1034,7 @@ clusterVisibilityValuesUnordered = get(get(handles.clusterListPanel,'Children'),
 for i = 1:length(rankedClusters)
     index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
     clusterVisibilityValues(i) = clusterVisibilityValuesUnordered{index};
-
+    
 end
 end
 
@@ -1224,10 +1044,9 @@ clusterColorValues = nan(length(rankedClusters),3);
 clusterSelectionStrings = get(get(handles.clusterListPanel,'Children'),'String');
 clusterColorValuesUnordered = get(get(handles.clusterListPanel,'Children'),'ForeGroundColor');
 for i = 1:length(rankedClusters)
-        index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
-        clusterColorValues(i,:) = clusterColorValuesUnordered{index};
-
+    index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
+    clusterColorValues(i,:) = clusterColorValuesUnordered{index};
+    
 end
 
 end
-
