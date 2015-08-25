@@ -43,7 +43,7 @@ classdef KlustaKwik <spikeSortingParam
         end
         
        
-        function [assignedClusters, rankedClusters, spikeModel] = sortSpikesDetected(par, spikeWaveforms, spikeTimestamps)
+        function [assignedClusters, rankedClusters, par, spikeModel] = sortSpikesDetected(par, spikeWaveforms, spikeTimestamps)
             currentDir=pwd;
             tempDir=fullfile(currentDir,'helpers','KlustaKwik');
             cd(tempDir);
@@ -89,7 +89,7 @@ classdef KlustaKwik <spikeSortingParam
                 end
             catch
                 warning('huh? no .clu?')
-                keyboard
+                %keyboard
             end
 
             % throw away first element of assignedClusters - the first line of the cluster file is the number of clusters found

@@ -41,12 +41,12 @@ classdef trode
             tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik           
         end %trode  
         
-        %% spike detection and sorting
-        function tr = detectSpikes(tr,dataPath, session)
+        function [tr, warn] = detectSpikes(tr,dataPath, session)
             tr.NeuralData = [];
             tr.NeuralDataTimes = [];
             tr.Mean = [];
             tr.Std = [];
+            warn.flag = -1;
             for i = 1:length(tr.chans)
                 
                 a = dir(fullfile(dataPath,sprintf('*_CH%d.continuous',tr.chans(i))));
@@ -56,10 +56,17 @@ classdef trode
                     [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data([dataPath,'\',a.name]);
                     if any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation)
                         warning('bad timestamps! why?');
-                        det.identifier = 'trode.detectSpikes';
-                        det.message = 'bad timestamps! why?';
-                        det.data = find(any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation));
-                        session = session.addToHistory('Warning',det);
+                        warn.flag=1;
+                        warn.identifier = 'trode.detectSpikes';
+                        warn.message = 'bad timestamps! why?';
+                        warn.ind = find(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation);
+                        for i = 1:length(warn.ind)
+                            if i == 1
+                                warn.data = [rawTimestamps(warn.ind(i)) rawTimestamps(warn.ind(i)+1)];
+                            else
+                                warn.data = [warn.data;rawTimestamps(warn.ind(i)) rawTimestamps(warn.ind(i)+1)];
+                            end
+                        end
                     end
                     tr.NeuralData = [tr.NeuralData rawData];
                     tr.NeuralDataTimes = rawTimestamps;
@@ -68,11 +75,12 @@ classdef trode
                 end
             end
             
+            
             %meanAndStd = [tr.Mean; tr.Std];
             
 %             tr.detectParams = tr.detectParams.setupAndValidateParams(meanAndStd);
 
-            [tr.spikeEvents, tr.spikeWaveForms, tr.spikeTimeStamps]= ...
+            [tr.spikeEvents, tr.spikeWaveForms, tr.spikeTimeStamps, tr.detectParams]= ...
                 tr.detectParams.detectSpikesFromNeuralData(tr.NeuralData, tr.NeuralDataTimes);
             
             tr.NeuralData = [];
@@ -83,7 +91,7 @@ classdef trode
             tr.spikeAssignedCluster = [];
             tr.spikeRankedCluster = [];
             
-            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.spikeModel] = tr.sortingParams.sortSpikesDetected( ...
+            [tr.spikeAssignedCluster, tr.spikeRankedCluster, tr.sortingParams, tr.spikeModel] = tr.sortingParams.sortSpikesDetected( ...
                 reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans)), tr.spikeTimeStamps);           
         end
         

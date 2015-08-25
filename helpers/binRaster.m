@@ -10,7 +10,7 @@ rows = size(raster,1);
 cols = ceil(size(raster,2)/binSize);
 
 if rows*cols > 1000000000
-    error('resolution too small for regular non-sparse matrix');
+    error('resolution size too small for regular non-sparse matrix');
 end
 
 binnedRaster = zeros(rows,cols);
@@ -29,10 +29,10 @@ for i = 1:rows
             if j == cols  %special case for last column
                 for k = ((j-1)*binSize+1):length(tempMat)
                     if tempMat(k) > 0
-                        binnedRaster(i,j) = binnedRaster(i,j)+1;
-                    end
-                end
-            else
+                        binnedRaster(i,j) = binnedRaster(i,j)+1; 
+                    end                                        
+                end %NOTE: its possible for value of binnedRaster to be>1.
+            else    %      should only occur when res < 1 though.
                 for k = ((j-1)*binSize+1):(j*binSize)
                     if tempMat(k) > 0
                         binnedRaster(i,j) = binnedRaster(i,j)+1;
