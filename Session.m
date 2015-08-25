@@ -91,13 +91,13 @@ classdef Session
                 dataPath = fullfile(session.sessionPath,session.sessionFolder);
                 try
                     session.trodes(i) = session.trodes(i).detectSpikes(dataPath, session);
-                    det.identifier = ['Session.detectSpikes' ,int2str(now)];
+                    det.identifier = ['Session.detectSpikes' ,datestr(now)];
                     det.message = sprintf('detected on trode %d of %d',i, length(session.trodes));
                     session = session.addToHistory('Completed',det);
+                    fName = saveSession(session);
                 catch ex
                     session = session.addToHistory('Error',ex);
                     fName = saveSession(session);
-                    keyboard
                 end
             end
         end
@@ -106,7 +106,7 @@ classdef Session
             for i = 1:length(session.trodes)
                 try
                     session.trodes(i) = session.trodes(i).sortSpikes();
-                    det.identifier = ['Session.sortSpikes ', int2str(now)];
+                    det.identifier = ['Session.sortSpikes ', datestr(now)];
                     det.message = sprintf('sorted on trode %d of %d',i, length(session.trodes));
                     session = session.addToHistory('Completed',det);
                     fName = saveSession(session);          %saves session between each sort just in case fails.
@@ -115,7 +115,22 @@ classdef Session
                     fName = saveSession(session);
                 end
             end
-            fName = saveSession(session);
+        end
+        
+        function session = inspectSpikes(session)
+            for i = 1:length(session.trodes)
+                try
+                    session.trodes(i) = session.trodes(i).inspectSpikes();
+                    det.identifier = ['Session.inspectSpikes ', datestr(now)];
+                    det.message = sprintf('inspected on trode %d of %d',i, length(session.trodes));
+                    session = session.addToHistory('Completed',det);
+                    fName = saveSession(session);          %saves session between each sort just in case fails.
+                    pause
+                catch ex
+                    session = session.addToHistory('Error',ex);
+                    fName = saveSession(session);
+                end
+            end
         end
         
         function fileName = saveSession(sess)  % save session as a struct to mat file
@@ -133,7 +148,11 @@ classdef Session
                 fprintf('#\tTYPE\tIDENT\t\t\t\t\t\tMESSAGE\n')
             end
             for i = 1:length(sess.history)
-                fprintf('%d.\t%s\t%s\t\t\t\t\t\t%s\n',i,sess.history{i}{1},sess.history{i}{2},sess.history{i}{3});
+                try
+                    fprintf('%d.\t%s\t%s\t\t\t\t\t\t%s\n',i,sess.history{i}{1},sess.history{i}{2},sess.history{i}{3});
+                catch ex
+                    fprintf('%d.\t%s\n',i,sess.history{i});
+                end
             end
         end
         
