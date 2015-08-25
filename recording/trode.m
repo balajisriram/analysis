@@ -41,6 +41,7 @@ classdef trode
             tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik           
         end %trode  
         
+        %% spike detection and sorting
         function [tr, warn] = detectSpikes(tr,dataPath, session)
             tr.NeuralData = [];
             tr.NeuralDataTimes = [];
@@ -109,7 +110,7 @@ classdef trode
             end
         end
         
-        %% helpers
+        %%helpers
         function out = numSpikes(tr)
             out = size(tr.spikeEvents,1);
         end
@@ -124,7 +125,7 @@ classdef trode
             else
                 out = 0;
             end
-        end
+        end        
 
     end
 end

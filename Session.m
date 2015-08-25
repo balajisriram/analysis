@@ -101,6 +101,7 @@ classdef Session
                         session = session.addToHistory('Completed',det);
                     end
                     
+                    fName = saveSession(session);
                 catch ex
                     session = session.addToHistory('Error',ex);
                     fName = saveSession(session);
@@ -138,22 +139,6 @@ classdef Session
                     fName = saveSession(session);
                 end
             end
-        end
-        
-        function session = inspectSpikes(session)
-            for i = 1:length(session.trodes)
-                try
-                    session.trodes(i) = session.trodes(i).inspectSpikes();
-                    det.identifier = ['Session.inspectSpikes ', datestr(now)];
-                    det.message = sprintf('inspected on trode %d of %d',i, length(session.trodes));
-                    session = session.addToHistory('Completed',det);
-                    fName = saveSession(session);          %saves session between each sort just in case fails.
-                catch ex
-                    session = session.addToHistory('Error',ex);
-                    fName = saveSession(session);
-                end
-            end
-            fName = saveSession(session);
         end
         
         
