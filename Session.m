@@ -105,7 +105,6 @@ classdef Session
                 catch ex
                     session = session.addToHistory('Error',ex);
                     fName = saveSession(session);
-                    %keyboard
                 end
             end
         end
