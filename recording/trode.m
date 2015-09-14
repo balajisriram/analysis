@@ -96,11 +96,12 @@ classdef trode
                 reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans)), tr.spikeTimeStamps);           
         end
         
-        function tr = inspectSpikes(tr)
-            interactiveInspectGUI(tr)
+        function newTr = inspectSpikes(tr)
+            newTr = interactiveInspectGUI(tr);
         end
         
         function tr = addUnit(tr,unit)
+            disp('adding Unit');
             if isa(unit,'singleUnit')
                 if tr.numUnits ==0
                     tr.units = unit;

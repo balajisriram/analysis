@@ -125,18 +125,18 @@ classdef Session
             end
         end
         
-        function session = inspectSpikes(session)
-            for i = 1:length(session.trodes)
+        function session = inspectSpikes(session,k) % ## added k to start from certain trode if partially complete
+            for i = k:length(session.trodes)
                 try
                     session.trodes(i) = session.trodes(i).inspectSpikes();
                     det.identifier = ['Session.inspectSpikes ', datestr(now)];
                     det.message = sprintf('inspected on trode %d of %d',i, length(session.trodes));
                     session = session.addToHistory('Completed',det);
-                    fName = saveSession(session);          %saves session between each sort just in case fails.
-                    pause
+                    disp('Saving Session. . .');
+                    fName = saveSessionGUI(session);          %saves session between each sort just in case fails.
                 catch ex
                     session = session.addToHistory('Error',ex);
-                    fName = saveSession(session);
+                    fName = saveSessionGUI(session);
                 end
             end
         end
@@ -145,6 +145,56 @@ classdef Session
         function fileName = saveSession(sess)  % save session as a struct to mat file
             fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
+        end
+        
+        function fileName = saveSessionGUI(sess)  % save session as a struct to mat file
+            fileName = [sess.sessionFolder,'_',int2str(now),'_Inspected.mat'];
+            save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
+        end
+        
+        function sess = plotSingleUnits(sess, trode)
+            tr = sess.trodes(trode);
+        
+            if isempty(tr.units)
+                error('No Single Units');
+            else
+                for i = 1:length(tr.units)
+                    subplot(2,ceil(length(tr.units)/2),i);
+                    wv = [];
+                    for k = 1:4
+                        wv = [wv tr.units(i).waveform(:,:,k)];
+                    end
+                    plot(wv');
+                end
+            end
+        end
+        
+        function numUnits = numberUnits(sess)
+            numUnits = 0;
+            for i = 1:length(sess.trodes)
+                numUnits = numUnits + length(sess.trodes(i).units);
+            end
+        end
+        
+        function sess = plotAvgSingleUnits(sess)
+            numUnits = numberUnits(sess);
+            numRows = ceil(numUnits/2);
+            k = 1;
+            for i = 1:length(sess.trodes)
+                for j = 1:length(sess.trodes(i).units)
+                    singleUnit = sess.trodes(i).units(j);
+                    avgWaveform = getAvgWaveform(singleUnit);
+                    [ind,peakInd,bestChan] = getSingleUnitTestData(singleUnit);
+                    for z = 1:size(singleUnit.waveform,3)
+                        subplot(numRows, 8, k);
+                        plot(avgWaveform(:,z));
+                        hold on;
+                        plot(peakInd, avgWaveform(peakInd,bestChan), '*');
+                        plot(ind, avgWaveform(ind,bestChan), '*')
+                        k = k+1;
+                    end
+                end
+            end
         end
         
         %% Manipulating the history
@@ -156,11 +206,16 @@ classdef Session
             if ~isempty(sess.history)
                 fprintf('#\tTYPE\tIDENT\t\t\t\t\t\tMESSAGE\n')
             end
-            for i = 1:length(sess.history)
-                try
-                    fprintf('%d.\t%s\t%s\t\t\t\t\t\t%s\n',i,sess.history{i}{1},sess.history{i}{2},sess.history{i}{3});
-                catch ex
-                    fprintf('%d.\t%s\n',i,sess.history{i});
+            fprintf('%s\n',sess.history{1});
+            for i = 2:length(sess.history)
+                if isstruct(sess.history{i}{3})
+                    fprintf('%d.\t%s\t%s\t\t\t\t\t\tERROR\n',i,sess.history{i}{1},sess.history{i}{2});
+                else
+                    try
+                        fprintf('%d.\t%s\t%s\t\t\t\t\t\t%s\n',i,sess.history{i}{1},sess.history{i}{2},sess.history{i}{3});
+                    catch ex
+                        fprintf('%d.\t%s\n',i,sess.history{i});
+                    end
                 end
             end
         end
