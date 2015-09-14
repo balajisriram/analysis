@@ -62,7 +62,7 @@ switch nargin
 end
 % some special functions for the ISI plot
 set(handles.hist10MSAxis,'ButtonDownFcn',{@hist10MSAxis_ButtonDownFcn, handles});
-
+handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
@@ -73,7 +73,8 @@ clusterListPanel_Initialize(hObject, eventdata, handles);
 updateAllAxes(hObject, eventdata, handles);
 
 % UIWAIT makes interactiveInspectGUI wait for user response (see UIRESUME)
-% uiwait(handles.inspectGUIFig);
+uiwait(handles.inspectGUIFig);
+
 end
 
 %% GUI close
@@ -85,6 +86,8 @@ function varargout = interactiveInspectGUI_OutputFcn(hObject, eventdata, handles
 % handles    structure with handles and user data (see GUIDATA)
 
 varargout{1} = handles.trode;
+delete(handles.inspectGUIFig);
+
 % Get default command line output from handles structure
 % varargout{1} = handles.spikeSortingParams;
 % varargout{2} = handles.currentSpikeRecord;
@@ -92,8 +95,10 @@ end
 
 %% GUI Exit
 function interactiveInspectGUI_ExitFcn(hObject, eventdata, handles)
-% keyboard
-delete(handles.inspectGUIFig);
+
+uiresume(handles.inspectGUIFig);
+delete(hObject);
+
 end
 
 %% Axes create funcs. nothing will be done. because handles is empty
@@ -201,6 +206,8 @@ hist10MSAxis_UpdateFcn(hObject, eventdata, handles);
 firingRateAxis_UpdateFcn(hObject, eventdata, handles);
 barChartWhole_UpdateFcn(hObject, eventdata, handles);
 barChartPart_UpdateFcn(hObject, eventdata, handles);
+
+disp('done updating axes');
 end
 
 % featureAxis
@@ -696,7 +703,7 @@ switch length(size(handles.trode.spikeWaveForms))
             handles.trode.spikeModel.featureList,...
             handles.trode.spikeModel.featureDetails);
     case 3
-        sizWvFrm = size(handles.trode.spikeWaveForms)
+        sizWvFrm = size(handles.trode.spikeWaveForms);
         [featuresAll, nDim] = useFeatures(...
             reshape(handles.trode.spikeWaveForms,sizWvFrm(1),sizWvFrm(2)*sizWvFrm(3)),...
             handles.trode.spikeModel.featureList,...
