@@ -41,14 +41,14 @@ classdef singleUnit
                 i = find(accelAvg==max(accelAvg));
                 spikeWidth = (peakInd - i)/30;
             end
-            set(gca, 'ylim', [-700 700]);
-            for j = 1:size(avgWaveform,2)
-                subplot(1,size(avgWaveform,2),j);
-                plot(avgWaveform(:,j));
-                hold on;
-                plot(peakInd, avgWaveform(peakInd,bestChan), '*');
-                plot(i, avgWaveform(i,bestChan), '*')
-            end
+%             set(gca, 'ylim', [-700 700]);
+%             for j = 1:size(avgWaveform,2)
+%                 subplot(1,size(avgWaveform,2),j);
+%                 plot(avgWaveform(:,j));
+%                 hold on;
+%                 plot(peakInd, avgWaveform(peakInd,bestChan), '*');
+%                 plot(i, avgWaveform(i,bestChan), '*')
+%             end
         end
         
         function [i,peakInd,bestChan] = getSingleUnitTestData(singleUnit)
@@ -90,13 +90,9 @@ classdef singleUnit
             end
         end
         
-        function avgWaveform = getAvgWaveform(singleUnit)
-            avgWaveform = zeros(size(singleUnit.waveform,2),size(singleUnit.waveform,3));
-            for i = 1:size(avgWaveform,1)
-                for j = 1:size(avgWaveform,2)
-                    avgWaveform(i,j) = mean(singleUnit.waveform(:,i,j));
-                end
-            end
+        function [avgWaveform stdWaveForm]= getAvgWaveform(singleUnit)
+            avgWaveform = squeeze(mean(singleUnit.waveform,1));
+            stdWaveForm = squeeze(std(singleUnit.waveform,[],1));
         end
     end
     
