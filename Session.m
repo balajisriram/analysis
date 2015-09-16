@@ -168,30 +168,34 @@ classdef Session
             end
         end
         
-        function numUnits = numberUnits(sess)
+        function numUnits = numUnits(sess)
             numUnits = 0;
             for i = 1:length(sess.trodes)
-                numUnits = numUnits + length(sess.trodes(i).units);
+                numUnits = numUnits + sess.trodes(i).numUnits;
             end
         end
         
-        function sess = plotAvgSingleUnits(sess)
-            numUnits = numberUnits(sess);
-            numRows = ceil(numUnits/2);
+        function allUnits = collateUnits(sess)
+            numUnits = sess.numUnits();
+            allUnits(numUnits) = singleUnit(NaN,NaN,NaN,NaN,NaN,NaN);
+            
+        end
+        
+        function sess = plotWaveforms(sess)
+            numUnits = sess.numUnits();
+            [xx, yy, numFigs] = getGoodArrangement(numUnits);
             k = 1;
             for i = 1:length(sess.trodes)
                 for j = 1:length(sess.trodes(i).units)
                     singleUnit = sess.trodes(i).units(j);
-                    avgWaveform = getAvgWaveform(singleUnit);
-                    [ind,peakInd,bestChan] = getSingleUnitTestData(singleUnit);
+                    [waveFormAvg, ~]  = getAvgWaveform(singleUnit);
+                    subplot(xx, yy, k); hold on;
+                    waveFormLength = size(waveFormAvg,1);
                     for z = 1:size(singleUnit.waveform,3)
-                        subplot(numRows, 8, k);
-                        plot(avgWaveform(:,z));
-                        hold on;
-                        plot(peakInd, avgWaveform(peakInd,bestChan), '*');
-                        plot(ind, avgWaveform(ind,bestChan), '*')
-                        k = k+1;
+                        plot((z-1)*waveFormLength+(1:waveFormLength),waveFormAvg(:,z));
                     end
+                    k = k+1;
+                    set(gca,'xtick',[]);
                 end
             end
         end
@@ -230,6 +234,7 @@ classdef Session
                     sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
             end
         end
-                
+        
     end
+    
 end
