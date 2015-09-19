@@ -59,40 +59,84 @@ classdef singleUnit
             spikeMax = max(bestAvgWaveform(10:30));
             if abs(spikeMin) >= abs(spikeMax) %downward spike
                 peakInd = find(bestAvgWaveform(10:30)==min(bestAvgWaveform(10:30)))+9;
-%                i = peakInd-2;
-%                slopeAvg = diff(bestAvgWaveform(1:peakInd));
                 accelAvg = diff(diff(bestAvgWaveform(1:peakInd)));
                 i = find(accelAvg==min(accelAvg));
-%                 while i > 0 && slopeAvg(i) < 0
-%                     i = i - 1;
-%                 end
-%                 if i == 0
-%                     i = 1;
-%                 end
-%                 while i < peakInd-2 && accelAvg(i) < 0
-%                     i = i + 1;
-%                 end
             else %upward spike
                 peakInd = find(bestAvgWaveform(10:30)==max(bestAvgWaveform(10:30)))+9;
-%                 i = peakInd-2;
-%                 slopeAvg = diff(bestAvgWaveform(1:peakInd));
                 accelAvg = diff(diff(bestAvgWaveform(1:peakInd)));
                 i = find(accelAvg==max(accelAvg));
-%                 while i > 0 && slopeAvg(i) > 0
-%                     i = i - 1;
-%                 end
-%                 if i == 0
-%                     i = 1;
-%                 end
-%                 while i < peakInd-2 && accelAvg(i) > 0
-%                     i = i + 1;
-%                 end
             end
         end
         
-        function [avgWaveform stdWaveForm]= getAvgWaveform(singleUnit)
-            avgWaveform = squeeze(mean(singleUnit.waveform,1));
-            stdWaveForm = squeeze(std(singleUnit.waveform,[],1));
+        function [corr, lag] = crossCorr(singleUnit, correlatedUnit, maxLag, binSize)
+            maxInd = max([singleUnit.index;correlatedUnit.index]);
+            singUnit = zeros(1,maxInd);
+            corrUnit = zeros(1,maxInd);
+            for i = 1:length(singleUnit.index)
+                singUnit(singleUnit.index(i)) = 1;
+            end
+            singUnit(singleUnit.index)=1;
+            corrUnit(correlatedUnit.index)=1;
+            singUnit = binRaster(singUnit, binSize);
+            corrUnit = binRaster(corrUnit, binSize);
+            [corr, lag] = xcorr(singUnit, corrUnit, maxLag);
+        end
+        
+        function [corrList, lag] = crossCorrAll(singleUnit, sess, maxLag, binSize)
+            corrList = zeros(sess.numberUnits(), maxLag*2+1);
+            xVal = ceil(mod(sess.numberUnits(),8));
+            yVal = 8; %seems 8 per row is most to still be clear
+            counter = 1;
+            
+            for i = 1:length(sess.trodes)
+                for j = 1:length(sess.trodes(i).units)
+                    [corr, lag] = crossCorr(singleUnit, sess.trodes(i).units(j), maxLag, binSize);
+                    
+                    subplot(xVal, yVal, counter);
+                    plot(lag,corr);
+                    
+                    corrList(counter,:) = corr;
+                    
+                    counter = counter + 1;
+                end
+            end
+        end
+        
+        function [corrScalar, avgScalar] = SpikeTriggerdFiringRate(singleUnit, scalar, sampSize)
+            highestInd = length(scalar);
+            
+            %finds which indices to block based on length of passed in
+            %scalar
+            blockedLower = (singleUnit.index-sampSize)<1;
+            blockedUpper = (singleUnit.index+sampSize)>highestInd;
+            allowedIndices = singleUnit.index;
+            allowedIndices(blockedLower) = [];
+            allowedIndices(blockedUpper) = [];
+            
+            %gets shape of scalar at all occurences of spike
+            corrScalar = zeros(length(allowedIndices),sampSize*2);
+            
+            for i = 1:size(corrScalar,1)
+                scInd = allowedIndices(i);
+                corrScalar(i,:) = scalar((scInd-sampSize):(scInd+sampSize-1));
+            end
+            
+            %gets avg of scalar at all occurences of spike
+            avgScalar = zeros(1,sampSize*2);
+            
+            for i = 1:size(avgScalar,2)
+                avgScalar(i) = mean(corrScalar(:,i)); 
+            end
+            
+        end
+        
+        function avgWaveform = getAvgWaveform(singleUnit)
+            avgWaveform = zeros(size(singleUnit.waveform,2),size(singleUnit.waveform,3));
+            for i = 1:size(avgWaveform,1)
+                for j = 1:size(avgWaveform,2)
+                    avgWaveform(i,j) = mean(singleUnit.waveform(:,i,j));
+                end
+            end
         end
     end
     
