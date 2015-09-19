@@ -140,7 +140,6 @@ classdef Session
             end
         end
         
-        
         function fileName = saveSession(sess)  % save session as a struct to mat file
             fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
