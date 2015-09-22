@@ -150,6 +150,37 @@ classdef Session
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end
         
+        %% Manipulating and plotting data in the session
+        function [corrList, lag] = getXCorr(sess, unitIdent, lag, bin, plotOn)
+            if ~exist('plotOn','var') || isempty(plotOn)
+                plotOn = false;
+            end
+            
+            corrList = zeros(sess.numUnits, lag*2+1);
+            counter = 1;
+            
+            refUnit = sess.trodes(unitIdent(1)).units(unitIdent(2));
+            
+            for i = 1:length(sess.trodes)
+                for j = 1:length(sess.trodes(i).units)
+                    [corr, lag] = crossCorr(refUnit, sess.trodes(i).units(j), lag, bin);
+                    
+                    corrList(counter,:) = corr;
+                    
+                    counter = counter + 1;
+                end
+            end
+            
+            if plotOn
+                [xx, yy] = getGoodArrangement(sess.numUnits);
+                for i = 1:sess.numUnits
+                    subplot(xx,yy,i);
+                    hold on;
+                    plot(corrList(i,:));
+                end
+            end
+        end
+
         function sess = plotSingleUnits(sess, trode)
             tr = sess.trodes(trode);
         
