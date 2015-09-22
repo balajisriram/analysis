@@ -20,12 +20,12 @@ classdef singleUnit
             unit.indexSampRate = sampRate;
         end
         
-        function avgFiringRate = getFiringRate(singleUnit) % # of spikes per second.
-            avgFiringRate = length(singleUnit.timestamp)/max(singleUnit.timestamp);
+        function avgFiringRate = getFiringRate(u) % # of spikes per second.
+            avgFiringRate = length(u.timestamp)/max(u.timestamp);
         end
         
-        function spikeWidth = getSpikeWidth(singleUnit) % how long spike is in ms
-            avgWaveform = getAvgWaveform(singleUnit);
+        function spikeWidth = getSpikeWidth(u) % how long spike is in ms
+            avgWaveform = getAvgWaveform(u);
             bestChan = max(sum(abs(diff(avgWaveform))))==sum(abs(diff(avgWaveform)));
             bestAvgWaveform = avgWaveform(:,bestChan);
             spikeMin = min(bestAvgWaveform(10:30));
@@ -51,8 +51,8 @@ classdef singleUnit
             end
         end
         
-        function [i,peakInd,bestChan] = getSingleUnitTestData(singleUnit)
-            avgWaveform = getAvgWaveform(singleUnit);
+        function [i,peakInd,bestChan] = getSingleUnitTestData(u)
+            avgWaveform = getAvgWaveform(u);
             bestChan = max(sum(abs(diff(avgWaveform))))==sum(abs(diff(avgWaveform)));
             bestAvgWaveform = avgWaveform(:,bestChan);
             spikeMin = min(bestAvgWaveform(10:30));
@@ -68,21 +68,35 @@ classdef singleUnit
             end
         end
         
-        function [corr, lag] = crossCorr(singleUnit, correlatedUnit, maxLag, binSize)
-            maxInd = max([singleUnit.index;correlatedUnit.index]);
+        function [R, P] = calcCorr(u, u1, dt) % dt in ms
+            maxInd = max([u.index;u1.index]);
+            numSamps = dt*(u.indexSampRate/1000);
+            edges = 1:numSamps:maxInd;
+                       
+            binned = histc(u.index,edges);
+            binned1 = histc(u1.index,edges);
+            
+            scatter(binned,binned1,'jitter','on','jitterAmount',0.5);
+            scatter(binned1,binned,'jitter','on','jitterAmount',0.5);
+            
+            [R,P] = corrcoef(binned,binned1);
+        end
+        
+        function [corr, lag] = spikeCorr(u, u1, maxLag, binSize)
+            maxInd = max([u.index;u1.index]);
             singUnit = zeros(1,maxInd);
             corrUnit = zeros(1,maxInd);
-            for i = 1:length(singleUnit.index)
-                singUnit(singleUnit.index(i)) = 1;
+            for i = 1:length(u.index)
+                singUnit(u.index(i)) = 1;
             end
-            singUnit(singleUnit.index)=1;
-            corrUnit(correlatedUnit.index)=1;
+            singUnit(u.index)=1;
+            corrUnit(u1.index)=1;
             singUnit = binRaster(singUnit, binSize);
             corrUnit = binRaster(corrUnit, binSize);
             [corr, lag] = xcorr(singUnit, corrUnit, maxLag);
         end
         
-        function [corrList, lag] = crossCorrAll(singleUnit, sess, maxLag, binSize)
+        function [corrList, lag] = crossCorrAll(u, sess, maxLag, binSize)
             corrList = zeros(sess.numberUnits(), maxLag*2+1);
             xVal = ceil(mod(sess.numberUnits(),8));
             yVal = 8; %seems 8 per row is most to still be clear
@@ -90,7 +104,7 @@ classdef singleUnit
             
             for i = 1:length(sess.trodes)
                 for j = 1:length(sess.trodes(i).units)
-                    [corr, lag] = crossCorr(singleUnit, sess.trodes(i).units(j), maxLag, binSize);
+                    [corr, lag] = crossCorr(u, sess.trodes(i).units(j), maxLag, binSize);
                     
                     subplot(xVal, yVal, counter);
                     plot(lag,corr);
@@ -102,14 +116,14 @@ classdef singleUnit
             end
         end
         
-        function [corrScalar, avgScalar] = SpikeTriggerdFiringRate(singleUnit, scalar, sampSize)
+        function [corrScalar, avgScalar] = SpikeTriggerdFiringRate(u, scalar, sampSize)
             highestInd = length(scalar);
             
             %finds which indices to block based on length of passed in
             %scalar
-            blockedLower = (singleUnit.index-sampSize)<1;
-            blockedUpper = (singleUnit.index+sampSize)>highestInd;
-            allowedIndices = singleUnit.index;
+            blockedLower = (u.index-sampSize)<1;
+            blockedUpper = (u.index+sampSize)>highestInd;
+            allowedIndices = u.index;
             allowedIndices(blockedLower) = [];
             allowedIndices(blockedUpper) = [];
             
@@ -130,11 +144,11 @@ classdef singleUnit
             
         end
         
-        function avgWaveform = getAvgWaveform(singleUnit)
-            avgWaveform = zeros(size(singleUnit.waveform,2),size(singleUnit.waveform,3));
+        function avgWaveform = getAvgWaveform(u)
+            avgWaveform = zeros(size(u.waveform,2),size(u.waveform,3));
             for i = 1:size(avgWaveform,1)
                 for j = 1:size(avgWaveform,2)
-                    avgWaveform(i,j) = mean(singleUnit.waveform(:,i,j));
+                    avgWaveform(i,j) = mean(u.waveform(:,i,j));
                 end
             end
         end
