@@ -20,11 +20,15 @@ classdef singleUnit
             unit.indexSampRate = sampRate;
         end
         
-        function avgFiringRate = getFiringRate(u) % # of spikes per second.
+        function avgFiringRate = firingRate(u) % # of spikes per second.
             avgFiringRate = length(u.timestamp)/max(u.timestamp);
         end
         
-        function spikeWidth = getSpikeWidth(u) % how long spike is in ms
+        function out = spikeWidth(u)
+            out = u.getPeakToTrough;
+        end
+        
+        function spikeWidth = getPeakToTrough(u) % how long spike is in ms
             avgWaveform = getAvgWaveform(u);
             bestChan = max(sum(abs(diff(avgWaveform))))==sum(abs(diff(avgWaveform)));
             bestAvgWaveform = avgWaveform(:,bestChan);
@@ -41,14 +45,6 @@ classdef singleUnit
                 i = find(accelAvg==max(accelAvg));
                 spikeWidth = (peakInd - i)/30;
             end
-%             set(gca, 'ylim', [-700 700]);
-%             for j = 1:size(avgWaveform,2)
-%                 subplot(1,size(avgWaveform,2),j);
-%                 plot(avgWaveform(:,j));
-%                 hold on;
-%                 plot(peakInd, avgWaveform(peakInd,bestChan), '*');
-%                 plot(i, avgWaveform(i,bestChan), '*')
-%             end
         end
         
         function [i,peakInd,bestChan] = getSingleUnitTestData(u)
@@ -76,38 +72,38 @@ classdef singleUnit
             binned = histc(u.index,edges);
             binned1 = histc(u1.index,edges);
             
-            scatter(binned,binned1,'jitter','on','jitterAmount',0.5);
-            scatter(binned1,binned,'jitter','on','jitterAmount',0.5);
-            
             [R,P] = corrcoef(binned,binned1);
         end
         
-        function [corr, lag] = spikeCorr(u, u1, maxLag, binSize)
+        function [corr, lag] = xcorr(u, u1, maxLag, binSize)
+            if ~exist('maxLag','var') || isempty(maxLag)
+                maxLag = 250; %in ms
+            end
+            
+            if ~exist('binSize','var') || isempty(binSize)
+                binSize = 1; %in ms
+            end
+            
             maxInd = max([u.index;u1.index]);
             singUnit = zeros(1,maxInd);
             corrUnit = zeros(1,maxInd);
-            for i = 1:length(u.index)
-                singUnit(u.index(i)) = 1;
-            end
+
             singUnit(u.index)=1;
             corrUnit(u1.index)=1;
+            
             singUnit = binRaster(singUnit, binSize);
             corrUnit = binRaster(corrUnit, binSize);
+            
             [corr, lag] = xcorr(singUnit, corrUnit, maxLag);
         end
         
         function [corrList, lag] = crossCorrAll(u, sess, maxLag, binSize)
             corrList = zeros(sess.numberUnits(), maxLag*2+1);
-            xVal = ceil(mod(sess.numberUnits(),8));
-            yVal = 8; %seems 8 per row is most to still be clear
             counter = 1;
             
             for i = 1:length(sess.trodes)
                 for j = 1:length(sess.trodes(i).units)
                     [corr, lag] = crossCorr(u, sess.trodes(i).units(j), maxLag, binSize);
-                    
-                    subplot(xVal, yVal, counter);
-                    plot(lag,corr);
                     
                     corrList(counter,:) = corr;
                     
@@ -116,41 +112,23 @@ classdef singleUnit
             end
         end
         
-        function [corrScalar, avgScalar] = SpikeTriggerdFiringRate(u, scalar, sampSize)
-            highestInd = length(scalar);
+        function [STA STD] = SpikeTriggerdFiringRate(u, scalar, sampSize)
+            % remove spikes that cannot provide complete signal in samples
+            spikes = u.index;
+            spikes(spikes<sampSize+1 | spikes> length(scalar)-sampSize) = [];
             
-            %finds which indices to block based on length of passed in
-            %scalar
-            blockedLower = (u.index-sampSize)<1;
-            blockedUpper = (u.index+sampSize)>highestInd;
-            allowedIndices = u.index;
-            allowedIndices(blockedLower) = [];
-            allowedIndices(blockedUpper) = [];
+            sampIndex = repmat(spikes,1,2*sampSize+1)+repmat((-sampSize:sampSize),length(spikes),1);
             
-            %gets shape of scalar at all occurences of spike
-            corrScalar = zeros(length(allowedIndices),sampSize*2);
+            spikeTrigSamp = spikes(sampIndex);
             
-            for i = 1:size(corrScalar,1)
-                scInd = allowedIndices(i);
-                corrScalar(i,:) = scalar((scInd-sampSize):(scInd+sampSize-1));
-            end
-            
-            %gets avg of scalar at all occurences of spike
-            avgScalar = zeros(1,sampSize*2);
-            
-            for i = 1:size(avgScalar,2)
-                avgScalar(i) = mean(corrScalar(:,i)); 
-            end
+            STA = mean(spikeTrigSamp,1);
+            STD  = std(spikeTrigSamp,[],1)
             
         end
         
-        function avgWaveform = getAvgWaveform(u)
-            avgWaveform = zeros(size(u.waveform,2),size(u.waveform,3));
-            for i = 1:size(avgWaveform,1)
-                for j = 1:size(avgWaveform,2)
-                    avgWaveform(i,j) = mean(u.waveform(:,i,j));
-                end
-            end
+        function [mWave, stdWave] = getAvgWaveform(u)
+            mWave = mean(u.waveform,3);
+            stdWave = std(u.waveform,[],3);
         end
     end
     
