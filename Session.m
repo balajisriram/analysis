@@ -105,7 +105,6 @@ classdef Session
                 catch ex
                     session = session.addToHistory('Error',ex);
                     fName = saveSession(session);
-                    %keyboard
                 end
             end
         end
@@ -141,7 +140,6 @@ classdef Session
             end
         end
         
-        
         function fileName = saveSession(sess)  % save session as a struct to mat file
             fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
@@ -152,6 +150,37 @@ classdef Session
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end
         
+        %% Manipulating and plotting data in the session
+        function [corrList, lag] = getXCorr(sess, unitIdent, lag, bin, plotOn)
+            if ~exist('plotOn','var') || isempty(plotOn)
+                plotOn = false;
+            end
+            
+            corrList = zeros(sess.numUnits, lag*2+1);
+            counter = 1;
+            
+            refUnit = sess.trodes(unitIdent(1)).units(unitIdent(2));
+            
+            for i = 1:length(sess.trodes)
+                for j = 1:length(sess.trodes(i).units)
+                    [corr, lag] = crossCorr(refUnit, sess.trodes(i).units(j), lag, bin);
+                    
+                    corrList(counter,:) = corr;
+                    
+                    counter = counter + 1;
+                end
+            end
+            
+            if plotOn
+                [xx, yy] = getGoodArrangement(sess.numUnits);
+                for i = 1:sess.numUnits
+                    subplot(xx,yy,i);
+                    hold on;
+                    plot(corrList(i,:));
+                end
+            end
+        end
+
         function sess = plotSingleUnits(sess, trode)
             tr = sess.trodes(trode);
         
@@ -169,31 +198,49 @@ classdef Session
             end
         end
         
-        function numUnits = numberUnits(sess)
+        function out = numTrodes(sess)
+            out = length(sess.trodes);
+        end
+        
+        function numUnits = numUnits(sess)
             numUnits = 0;
             for i = 1:length(sess.trodes)
-                numUnits = numUnits + length(sess.trodes(i).units);
+                numUnits = numUnits + sess.trodes(i).numUnits;
             end
         end
         
-        function sess = plotAvgSingleUnits(sess)
-            numUnits = numberUnits(sess);
-            numRows = ceil(numUnits/2);
+        function allUnits = collateUnits(sess)
+            numUnits = sess.numUnits();
+            allUnits(numUnits) = singleUnit(NaN,NaN,NaN,NaN,NaN,NaN);
+            error('does not run currently');
+        end
+        
+        function plotWaveforms(sess)
+            numUnits = sess.numUnits();
+            [xx, yy, numFigs] = getGoodArrangement(numUnits);
             k = 1;
             for i = 1:length(sess.trodes)
                 for j = 1:length(sess.trodes(i).units)
                     singleUnit = sess.trodes(i).units(j);
-                    avgWaveform = getAvgWaveform(singleUnit);
-                    [ind,peakInd,bestChan] = getSingleUnitTestData(singleUnit);
+                    [waveFormAvg, ~]  = getAvgWaveform(singleUnit);
+                    subplot(xx, yy, k); hold on;
+                    waveFormLength = size(waveFormAvg,1);
                     for z = 1:size(singleUnit.waveform,3)
-                        subplot(numRows, 8, k);
-                        plot(avgWaveform(:,z));
-                        hold on;
-                        plot(peakInd, avgWaveform(peakInd,bestChan), '*');
-                        plot(ind, avgWaveform(ind,bestChan), '*')
-                        k = k+1;
+                        plot((z-1)*waveFormLength+(1:waveFormLength),waveFormAvg(:,z));
                     end
+                    k = k+1;
+                    set(gca,'xtick',[]);
                 end
+            end
+        end
+        
+        function out = getReport(sess)
+            numTrodes = sess.numTrodes();
+            % get the autonomous details for each trode
+            for i = 1:numTrodes
+                fprintf('trode %d of %d\n',i,numTrodes);
+                out.trodeDetails{i}.chans = sess.trodes(i).chans;
+                out.trodeDetails{i}.report = sess.trodes(i).getReport();
             end
         end
         
@@ -231,6 +278,7 @@ classdef Session
                     sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
             end
         end
-                
+        
     end
+    
 end
