@@ -111,7 +111,7 @@ classdef trode
             end
         end
         
-        %%helpers
+        %% helpers
         function out = numSpikes(tr)
             out = size(tr.spikeEvents,1);
         end
@@ -126,7 +126,21 @@ classdef trode
             else
                 out = 0;
             end
-        end        
+        end    
+        
+        function out = getReport(tr)
+            numUnits = tr.numUnits();
+            out = struct;
+            for i = 1:numUnits
+                out.unitDetails{i} = tr.units(i).getReport();
+                for j = 1:i
+                    out.crossCorrDetails{i,j}.unitIDs = [i,j];
+                    [out.crossCorrDetails{i,j}.xcorr, ...
+                        out.crossCorrDetails{i,j}.shuffleMean,...
+                        out.crossCorrDetails{i,j}.shuffleSTD] = xcorr(tr.units(i),tr.units(j));
+                end
+            end
+        end
 
     end
 end

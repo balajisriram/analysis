@@ -198,6 +198,10 @@ classdef Session
             end
         end
         
+        function out = numTrodes(sess)
+            out = length(sess.trodes);
+        end
+        
         function numUnits = numUnits(sess)
             numUnits = 0;
             for i = 1:length(sess.trodes)
@@ -208,10 +212,10 @@ classdef Session
         function allUnits = collateUnits(sess)
             numUnits = sess.numUnits();
             allUnits(numUnits) = singleUnit(NaN,NaN,NaN,NaN,NaN,NaN);
-            
+            error('does not run currently');
         end
         
-        function sess = plotWaveforms(sess)
+        function plotWaveforms(sess)
             numUnits = sess.numUnits();
             [xx, yy, numFigs] = getGoodArrangement(numUnits);
             k = 1;
@@ -227,6 +231,16 @@ classdef Session
                     k = k+1;
                     set(gca,'xtick',[]);
                 end
+            end
+        end
+        
+        function out = getReport(sess)
+            numTrodes = sess.numTrodes();
+            % get the autonomous details for each trode
+            for i = 1:numTrodes
+                fprintf('trode %d of %d\n',i,numTrodes);
+                out.trodeDetails{i}.chans = sess.trodes(i).chans;
+                out.trodeDetails{i}.report = sess.trodes(i).getReport();
             end
         end
         
