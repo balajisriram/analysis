@@ -49,7 +49,21 @@ elseif (strcmpi(basisEvent.type, 'CLUSTER'))
     
     
 elseif(strcmpi(basisEvent.type, 'SINGLEUNIT')) % ## need to implement still based on how we save singleUnit
-    error('Single Unit functionality not yet implemented');
+    if ~isfield(basisEvent,'specifier')
+        error('Need to include basisEvent.specifier');
+    elseif length(basisEvent.specifier) < 2
+        error('basisEvent.specifier must be structed [trode# singleUnit#]');
+    elseif (basisEvent.specifier(1) > length(sess.trodes))
+        error('trode# too high');
+    elseif (basisEvent.specifier(2) > length(sess.trodes(basisEvent.specifier(1)).units))
+        error('singleUnit# too high');
+    end
+    
+    trodeNum = basisEvent.specifier(1);
+    unitNum = basisEvent.specifier(2);
+    
+    basisTimes = sess.trodes(trodeNum).units(unitNum).timestamp;
+    
 else
     error('basisEvent.type must be EVENTDATA, CLUSTER, or SINGLEUNIT');
 end
@@ -72,8 +86,8 @@ elseif (strcmpi(plottedEvent.type,'EVENTDATA'))
         error('onOff must be 1 or 0');
     end
     
-    plottedData = sess.eventData.out(basisEvent.specifier(1)).eventID;
-    plottedTimes = sess.eventData.out(basisEvent.specifier(1)).eventTimes(plottedData == plottedEvent.specifier);
+    plottedData = sess.eventData.out(plottedEvent.specifier(1)).eventID;
+    plottedTimes = sess.eventData.out(plottedEvent.specifier(1)).eventTimes(plottedData == plottedEvent.specifier);
     
 elseif (strcmpi(plottedEvent.type, 'CLUSTER'))
     if ~isfield(plottedEvent,'specifier')
@@ -92,7 +106,20 @@ elseif (strcmpi(plottedEvent.type, 'CLUSTER'))
     plottedTimes = sess.trodes(trodeNum).spikeTimeStamps(sess.trodes(trodeNum).spikeAssignedCluster == clustNum);    
     
 elseif(strcmpi(plottedEvent.type, 'SINGLEUNIT')) % ## need to implement still based on how we save singleUnit
-    error('Single Unit functionality not yet implemented');
+    if ~isfield(plottedEvent,'specifier')
+        error('Need to include basisEvent.specifier');
+    elseif length(plottedEvent.specifier) < 2
+        error('basisEvent.specifier must be structed [trode# singleUnit#]');
+    elseif (plottedEvent.specifier(1) > length(sess.trodes))
+        error('trode# too high');
+    elseif (plottedEvent.specifier(2) > length(sess.trodes(plottedEvent.specifier(1)).units))
+        error('singleUnit# too high');
+    end
+    
+    trodeNum = plottedEvent.specifier(1);
+    unitNum = plottedEvent.specifier(2);
+    
+    plottedTimes = sess.trodes(trodeNum).units(unitNum).timestamp;
 else
     error('plottedEvent.type must be EVENTDATA, CLUSTER, or SINGLEUNIT');
 end
