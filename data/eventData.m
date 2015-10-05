@@ -196,6 +196,7 @@ classdef eventData
                         specialCase = [specialCase i];
                     else
                         messages(i+2).trial = currTrial+1;
+                        messages(i+3).trial = currTrial+1;
                     end
                 end
             end
