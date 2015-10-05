@@ -15,6 +15,8 @@ classdef eventData
         RewC
         RewR
         
+        messages
+        specialCases
         out
     end
     
@@ -47,8 +49,14 @@ classdef eventData
     methods
         
         function e = getChannelEvents(e)
+            %opens messages file
+            [e.messages, e.specialCases] = eventData.openMessages(fullfile(e.eventFolder,'messages.events'));
+            
+            %tries to fix errors generated when parsing messages.event file
+            %[e.messages, e.specialCases] = fixMessageParseErrors(e.messages);
+            
             %opens event file, gets info
-            [eventTimes, eventID, eventChannel] = eventData.openEvents(fullfile(e.eventFolder,'all_channels.events'));
+            [eventTimes, eventID, eventChannel, eventType, sampNum] = eventData.openEvents(fullfile(e.eventFolder,'all_channels.events'));
             
             whichChans = unique(eventChannel);
             
@@ -57,18 +65,64 @@ classdef eventData
                 eventsThatChannel = eventChannel==whichChans(i);
                 eventTimesThatChannel = eventTimes(eventsThatChannel);
                 eventIDThatChannel = eventID(eventsThatChannel);
+                eventTypeThatChannel = eventType(eventsThatChannel);
+                sampNumThatChannel = sampNum(eventsThatChannel);
                 
                 % IMPORTANT CHOOSE UNIQUE ONLY AFTER SELECTING ON CHANNEL
                 [eventTimesThatChannelUniq, ia] = unique(eventTimesThatChannel);
                 eventIDThatChannelUniq = eventIDThatChannel(ia);
+                eventTypeThatChannelUniq = eventTypeThatChannel(ia);
+                sampNumThatChannelUniq = sampNumThatChannel(ia);
                 
                 e.out(i).channelNum = whichChans(i);
                 e.out(i).eventTimes = eventTimesThatChannelUniq;
                 e.out(i).eventID = eventIDThatChannelUniq;
+                e.out(i).eventType = eventTypeThatChannelUniq;
+                e.out(i).sampNum = sampNumThatChannelUniq;
             end
         end
         
         function e = getTrialEvents(e)
+            trialsEventInd = (e.out(1).eventType==3);
+            trialsRisingInd = (e.out(1).eventID==1);
+            
+            assert(sum(trialsEventInd) == length(e.messages));            
+            
+            trialsStart = e.out(1).eventTimes(trialsEventInd & trialsRisingInd);
+            trialsStop = e.out(1).eventTimes(trialsEventInd & ~trialsRisingInd);
+            
+            assert(length(trialsStart) == length(trialsStop));
+            
+            for i = 1:length(trialsStart)
+                e.trials(i).trialNumber = e.messages(i*2).trial;
+                e.trials(i).start = trialsStart(i);
+                e.trials(i).stop = trialsStop(i);
+            end
+            
+            stimRisingInd = (e.out(3).eventID == 1);
+            
+            stimStart = e.out(3).eventTimes(stimRisingInd);
+            stimStop = e.out(3).eventTimes(~stimRisingInd);
+            
+            assert(length(stimStart) == length(stimStop));
+            assert(length(stimStart) == length(trialsStart));
+            
+            for i = 1:length(stimStart)
+                e.stim(i).trialNumber = e.trials(i).trialNumber;
+                e.stim(i).start = stimStart(i);
+                e.stim(i).stop = stimStop(i);
+            end
+            
+            for i = 1:length(e.trials)
+                minTime = e.trials(i).start;
+                maxTime = e.trials(i).stop;
+                
+                frameRisingInd = (e.out(2).eventID == 1);
+                frameTimeInd = ((e.out(2).eventTimes >= minTime) & (e.out(2).eventTimes <= maxTime));
+                
+                e.frame(i).trialNumber = e.trials(i).trialNumber;
+                e.frame(i).start = e.out(2).eventTimes(frameRisingInd & frameTimeInd);
+            end
         end
         
         function e = getOtherMessages(e)
@@ -76,7 +130,78 @@ classdef eventData
     end
     
     methods(Static)
-        function [timestamps eventID eventChannel] = openEvents(filename)
+        function [messages, specialCase] = openMessages(filename)
+            fid = fopen(filename);
+            tline = fgets(fid);
+            k=1;
+            lastStatus = 0;
+            lastTrial = 'unknown';
+            while ischar(tline)
+                spaceInd = strfind(tline, ' ');
+                colonInd = strfind(tline,'::');
+
+                timestamp = str2num(tline(1:spaceInd-1));
+                if strcmp(tline(spaceInd+1:spaceInd+5),'Trial')
+                    if ~isempty(strfind(tline, 'TrialStart'))  %trial start
+                        status = 1;
+                        i=2;
+                        while str2num(tline(colonInd+i)) >= 0
+                            i = i + 1;
+                        end
+                        trial = str2num(tline(colonInd+2:colonInd+i-1));
+                        lastTrial = trial;
+                        if lastStatus == status
+                            tline = fgets(fid);
+                        else
+                            messages(k).timestamp = timestamp;
+                            messages(k).status = status;
+                            messages(k).trial = trial;
+
+                            k = k+1;
+                            lastStatus = status;
+                            tline = fgets(fid);
+                            tline = fgets(fid);
+                        end   
+                    else  %trial end
+                        status = 0;
+                        trial = lastTrial;
+                        if lastStatus == status
+                            tline = fgets(fid);
+                        else
+                            messages(k).timestamp = timestamp;
+                            messages(k).status = status;
+                            messages(k).trial = trial;
+
+                            k = k+1;
+                            lastStatus = status;
+                            tline = fgets(fid);
+                            tline = fgets(fid);
+                        end   
+                    end
+                else
+                    tline = fgets(fid);
+                end
+            end
+            
+            specialCase = [];
+            if isempty(messages)
+                return
+            end
+            for i = 1:2:length(messages)-4
+                currTrial = messages(i).trial;
+                nextTrial = messages(i+2).trial;
+                nextNextTrial = messages(i+4).trial;
+                if (nextTrial - currTrial) ~= 1
+                    if (nextNextTrial - currTrial) ~= 2
+                        specialCase = [specialCase i];
+                    else
+                        messages(i+2).trial = currTrial+1;
+                    end
+                end
+            end
+        end
+        
+        function [timestamps eventID eventChannel eventType sampleNum] = openEvents(filename)
             % [uint8 int64 uint8 uint8 uint8] = openEvents(String)
             %  Modified version of OpenEphys's 'load_open_ephys_data' function to store
             %  data in more convenient form for processing.
@@ -173,11 +298,10 @@ classdef eventData
                 % crop the arrays to the correct size
                 eventChannel = data(1:index);
                 timestamps = timestamps(1:index);
-                info.sampleNum = info.sampleNum(1:index);
+                sampleNum = info.sampleNum(1:index);
                 info.processorID = info.nodeId(1:index);
-                info.eventType = info.eventType(1:index);
+                eventType = info.eventType(1:index);
                 eventID = info.eventId(1:index);
-                
             end
             
             fclose(fid); % close the file

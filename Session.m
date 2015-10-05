@@ -140,6 +140,161 @@ classdef Session
             end
         end
         
+        function minTrial = getMinTrial(sess)
+            if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
+                minTrial = Nan; 
+            else
+                minTrial = sess.eventData.messages(1).trial;    
+            end
+        end
+        
+        function maxTrial = getMaxTrial(sess)
+            if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
+                maxTrial = Nan;
+            else
+                maxTrial = sess.eventData.messages(end).trial;
+            end            
+        end
+        
+        function [start,stop] = getTrialStartStop(sess, trial) % rename as getTrialIndexRange ; rename timestamp as index ; 
+            if trial > getMaxTrial(sess) || trial < getMinTrial(sess)
+                error('ERROR: trial out of range of session');
+            end
+            if sess.eventData.messages(1).status == 1 % 
+                ind = (trial - sess.eventData.messages(1).trial)*2 + 1;
+            else
+                ind = (trial - sess.eventData.messages(2).trial)*2 + 2;
+            end
+            
+            if sess.eventData.messages(ind).trial ~= trial
+                if ~isempty(find(sess.eventData.specialCases == ind, 1)) > 0
+                    fprintf('Special Case at %d \n',ind);
+                else
+%                     keyboard
+%                     fprintf('Special Case at %d \n',ind);
+%                     warning('ERROR: hard-coded parser failed, some trial not recorded');
+                end
+            end
+
+            start = sess.eventData.messages(ind).timestamp;
+            
+            % if last trial of session is picked and there is no TrialEnd to it
+            if ind == length(sess.eventData.messages)
+                stop = -1;
+            else
+                stop = sess.eventData.messages(ind+1).timestamp;
+            end
+        end
+        
+        function trialEvents = getTrialEvents(sess, trial)
+            [start,stop] = getTrialStartStop(sess, trial); %already error checks sess/trial
+            
+            eData = sess.eventData.out;
+            for i = 1:length(eData)
+                ind = (eData(i).eventTimes <= stop/30000 & eData(i).eventTimes >= start/30000); %% xx super hardcoded BAD!!
+                trialEvents(i).channelNum = eData(i).channelNum;
+                trialEvents(i).eventTimes = eData(i).eventTimes(ind);
+                trialEvents(i).eventID = eData(i).eventID(ind);
+                trialEvents(i).eventType = eData(i).eventType(ind);
+                trialEvents(i).sampNum = eData(i).sampNum(ind);
+            end
+        end
+        
+        function success = plotTrialEvents(sess, trial)
+            success = true;
+            
+            [start,stop] = getTrialStartStop(sess, trial);
+            samps = stop-start;
+%             xAxis = ((start:stop)-start)/sess.trodes(1).detectParams.samplingFreq*1000; 
+            xAxis = (start:stop);
+            
+            trialEvents = getTrialEvents(sess, trial);
+            figure; hold on;
+            for i = 1:5 %% hardcoded BAD!!
+%                 subplot(3,2,i);
+
+                eventID = trialEvents(i).eventID;
+                eventTimes = trialEvents(i).eventTimes;
+                
+                yAxis = zeros(1, length(xAxis));
+                if isempty(eventID)
+                    return
+                end
+
+                eventInd = 1;
+                eventVal = ~eventID(eventInd);
+                for k = 1:length(xAxis)
+                    if eventInd > length(eventTimes)
+                        yAxis(k) = eventVal;
+                    elseif xAxis(k) < (eventTimes(eventInd)*30000)
+                        yAxis(k) = eventVal;
+                    else
+                        eventInd = eventInd+1;
+                        eventVal = ~eventVal;
+                        yAxis(k) = eventVal;
+                    end
+                end
+                xVal = (xAxis-min(xAxis))/sess.trodes(1).detectParams.samplingFreq*1000;
+                plot(xVal, yAxis+2*(i-1));
+                axis([xVal(1), xVal(end), -.5, 12]);
+                hold on;
+            end
+        end
+        
+        function [trialNumber, frameDuration, stimDuration] = getFrameDuration(sess) %% xx needs to change
+            maxTrial = getMaxTrial(sess);
+            minTrial = getMinTrial(sess);
+            
+            numTrials = maxTrial-minTrial;
+            frameStart = zeros(1, numTrials);
+            frameStop = zeros(1,numTrials);
+            
+            stimStart = zeros(1, numTrials);
+            stimStop = zeros(1, numTrials);
+            
+            j = 1;
+            for i = minTrial:maxTrial
+                trialEvents = getTrialEvents(sess, i);
+                if isempty(trialEvents(2).eventTimes)
+                    frameStart(j) = 0;
+                    frameStop(j) = 0;
+                else
+                    frameStart(j) = trialEvents(2).eventTimes(1);
+                    frameStop(j) = trialEvents(2).eventTimes(end);
+                end
+                if isempty(trialEvents(3).eventTimes)
+                    stimStart(j) = 0;
+                    stimStop(j) = 0;
+                else
+                    stimStart(j) = trialEvents(3).eventTimes(1);
+                    stimStop(j) = trialEvents(3).eventTimes(end);
+                end
+                j = j+1;
+            end
+            frameDuration = frameStop-frameStart;
+            stimDuration = stimStop-stimStart;
+            trialNumber = minTrial:maxTrial;
+            
+            plotOn = false;
+            if plotOn
+                figure;
+                plot((stimStop-stimStart),(frameStop-frameStart),'k.');
+                hold on;
+                plot([0 max((frameStop-frameStart),(stimStop-stimStart))],[0 max((frameStop-frameStart),(stimStop-stimStart))],'k');
+                axis square;
+                
+            end
+        end
+        
+        %## to add more information to eventData class
+        function sess = addToEventData(sess)
+            %sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
+            sess.eventData = eventData('C:\Users\Ghosh\Desktop\ShortenedData\bas070_2015-09-17_13-09-50');
+            
+            %fname = saveSession(sess);
+            fname = saveSessionGUI(sess);
+        end
+        
         function fileName = saveSession(sess)  % save session as a struct to mat file
             fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
