@@ -140,7 +140,7 @@ classdef eventData
                 spaceInd = strfind(tline, ' ');
                 colonInd = strfind(tline,'::');
 
-                timestamp = str2num(tline(1:spaceInd-1));
+                index = str2num(tline(1:spaceInd-1));
                 if strcmp(tline(spaceInd+1:spaceInd+5),'Trial')
                     if ~isempty(strfind(tline, 'TrialStart'))  %trial start
                         status = 1;
@@ -153,7 +153,7 @@ classdef eventData
                         if lastStatus == status
                             tline = fgets(fid);
                         else
-                            messages(k).timestamp = timestamp;
+                            messages(k).index = index;
                             messages(k).status = status;
                             messages(k).trial = trial;
 
@@ -168,7 +168,7 @@ classdef eventData
                         if lastStatus == status
                             tline = fgets(fid);
                         else
-                            messages(k).timestamp = timestamp;
+                            messages(k).index = index;
                             messages(k).status = status;
                             messages(k).trial = trial;
 
@@ -196,8 +196,13 @@ classdef eventData
                         specialCase = [specialCase i];
                     else
                         messages(i+2).trial = currTrial+1;
+                        messages(i+3).trial = currTrial+1;
                     end
                 end
+            end
+            if mod(length(messages),2) == 1  %## not sure what to do when ends with trial start
+                messages(end+1) = messages(end);
+                messages(end).status=0;
             end
         end
         
