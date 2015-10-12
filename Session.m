@@ -396,7 +396,7 @@ classdef Session
             end
         end
         
-        function out = getRaster(sess)
+        function raster = getRaster(sess, what, wrt)
         end
         
         %% Manipulating the history
