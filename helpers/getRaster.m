@@ -1,5 +1,5 @@
 function [basisIndices, raster] = getRaster(sess, basisEvent, plottedEvent, histSize)
-% getRastor function finds correlations of event occurences between two
+% getRaster function finds correlations of event occurences between two
 % data sets
 
 % Parameters:

@@ -396,6 +396,9 @@ classdef Session
             end
         end
         
+        function out = getRaster(sess)
+        end
+        
         %% Manipulating the history
         function sess = flushHistory(sess)
             sess.history = {};

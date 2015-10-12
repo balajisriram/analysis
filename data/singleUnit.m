@@ -144,9 +144,18 @@ classdef singleUnit
             nShuffle = 10;
             corrShuffle = nan(nShuffle,length(corr));
             for i = 1:nShuffle
+                clear shufUnit shufOther
                 tic
-                shufUnit = singUnit(randperm(length(singUnit)));
-                shufOther = corrUnit(randperm(length(corrUnit)));
+                try
+                    shuffleOrder = randperm(length(singUnit));
+                    shufUnit = singUnit(uint32(shuffleOrder));
+                    shuffleOrder = randperm(length(corrUnit));
+                    shufOther = corrUnit(uint32(shuffleOrder));
+                catch ex
+                    beep
+                    getReport(ex)
+                    keyboard
+                end
                 corrShuffle(i,:) = xcorr(shufUnit,shufOther,maxLag);
                 fprintf('xcorr %d of %d took %2.2f s\n',i,nShuffle,toc);
             end
@@ -192,7 +201,11 @@ classdef singleUnit
             out.spikeWidth = u.spikeWidth();
             out.ISI = u.ISI();
             out.waveform = u.getAvgWaveform();
-            out.autocorr = u.xcorr(u,250,1);
+            out.autocorr = u.xcorr(u,250,2);
+            
+        end
+        
+        function out = getRaster(u, idxs, window)
             
         end
     end
