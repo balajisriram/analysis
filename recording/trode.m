@@ -129,7 +129,7 @@ classdef trode
         end    
         
         function out = getReport(tr)
-            numUnits = tr.numUnits();
+            numUnits = tr.numUnits()
             out = struct;
             for i = 1:numUnits
                 out.unitDetails{i} = tr.units(i).getReport();

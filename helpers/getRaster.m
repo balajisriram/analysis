@@ -1,5 +1,19 @@
-function [basisIndices, raster] = getRaster(sess, basisEvent, plottedEvent, histSize)
-% getRastor function finds correlations of event occurences between two
+function raster = getRaster(basis,plotted,window)
+%  basis:          index into sync times
+%  plotted:        index into events to be synced
+%  window:         time window before and after sync window in same basis
+
+raster = zeros(length(basis),length(window(1):window(2)));
+for i = 1:length(basis)
+    plottedCurr = plotted-basis(i);
+    whichRelevant = plottedCurr(plottedCurr>window(1) & plottedCurr<window(2));
+    
+    raster()
+end
+end
+
+function [basisIndices, raster] = getRaster1(sess, basisEvent, plottedEvent, histSize)
+% getRaster function finds correlations of event occurences between two
 % data sets
 
 % Parameters:
