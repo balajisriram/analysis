@@ -291,6 +291,13 @@ classdef Session
             fname = saveSession(sess);
             %fname = saveSessionGUI(sess);
         end
+        function sess = addToEventDataGUI(sess)
+            sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
+            %sess.eventData = eventData();
+            
+            %fname = saveSession(sess);
+            fname = saveSessionGUI(sess);
+        end
         
         function fileName = saveSession(sess)  % save session as a struct to mat file
             fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
