@@ -1,4 +1,4 @@
-classdef singleUnit
+ classdef singleUnit
     % singlueUnit class to store information neuron information. 
     
     properties
@@ -163,13 +163,13 @@ classdef singleUnit
             shuffleS = std(corrShuffle,[],1);
         end
         
-        function [corrList, lag] = crossCorrAll(u, sess, maxLag, binSize)
+        function [corrList, lag] = spikeCorrAll(u, sess, maxLag, binSize)
             corrList = zeros(sess.numberUnits(), maxLag*2+1);
             counter = 1;
             
             for i = 1:length(sess.trodes)
                 for j = 1:length(sess.trodes(i).units)
-                    [corr, lag] = crossCorr(u, sess.trodes(i).units(j), maxLag, binSize);
+                    [corr, ~ ,~, lag] = xcorr(u, u1, maxLag, binSize);
                     
                     corrList(counter,:) = corr;
                     
