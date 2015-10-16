@@ -270,11 +270,66 @@ colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
 
 clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
-
-
 % now plot
-for i=1:length(handles.trode.spikeRankedCluster)
-    thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+% for i=1:length(handles.trode.spikeRankedCluster)
+%     thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+%     sizspikeWaveforms = size(handles.trode.spikeWaveForms);
+%     if length(sizspikeWaveforms)==3
+%         numChans = sizspikeWaveforms(3);
+%         numSamps = sizspikeWaveforms(2);
+%     else
+%         numChans = 1;
+%         numSamps = sizspikeWaveforms(2);
+%     end
+%     if ~isempty(thisCluster) && clusterVisibilityValues(i)
+%         switch numChans
+%             case 1
+%                 plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
+%             otherwise
+%                 for j = 1:numChans
+%                     
+%                     plot((j-1)*numSamps+(1:numSamps),handles.trode.spikeWaveForms(thisCluster,:,j)','color',colors(i,:));
+%                 end
+%         end
+%     end
+% end
+
+% ## Changed to increase speed of plotting. Tradeoff: for clusters with
+% over 10,000 spikes, plots 10,000 random spikes, not entire cluster.
+% However, this should display the cluster pretty accurately.
+
+for i = 1:length(clusterVisibilityValues)
+    if clusterVisibilityValues(i)
+        thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+        if length(thisCluster) > 10000
+            r = length(thisCluster).*rand(10000,1);
+            r = ceil(r);
+            block = 1:length(thisCluster);
+            block(r) = [];
+            thisCluster(block) = [];
+        end
+        sizspikeWaveforms = size(handles.trode.spikeWaveForms);
+        if length(sizspikeWaveforms)==3
+            numChans = sizspikeWaveforms(3);
+            numSamps = sizspikeWaveforms(2);
+        else
+            numChans = 1;
+            numSamps = sizspikeWaveforms(2);
+        end
+        if ~isempty(thisCluster)
+            switch numChans
+                case 1
+                    plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
+                otherwise
+                    for j = 1:numChans
+                        plot((j-1)*numSamps+(1:numSamps),handles.trode.spikeWaveForms(thisCluster,:,j)','color',colors(i,:));
+                    end
+            end
+        end
+    end
+end
+
+if sum(clusterVisibilityValues) == 0
     sizspikeWaveforms = size(handles.trode.spikeWaveForms);
     if length(sizspikeWaveforms)==3
         numChans = sizspikeWaveforms(3);
@@ -282,17 +337,6 @@ for i=1:length(handles.trode.spikeRankedCluster)
     else
         numChans = 1;
         numSamps = sizspikeWaveforms(2);
-    end
-    if ~isempty(thisCluster) && clusterVisibilityValues(i)
-        switch numChans
-            case 1
-                plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
-            otherwise
-                for j = 1:numChans
-                    
-                    plot((j-1)*numSamps+(1:numSamps),handles.trode.spikeWaveForms(thisCluster,:,j)','color',colors(i,:));
-                end
-        end
     end
 end
 

@@ -84,19 +84,31 @@ classdef eventData
         
         function e = getTrialEvents(e)
             trialsEventInd = (e.out(1).eventType==3);
-            trialsRisingInd = (e.out(1).eventID==1);
-            
-            assert(sum(trialsEventInd) == length(e.messages));            
+            trialsRisingInd = (e.out(1).eventID==1);          
             
             trialsStart = e.out(1).eventTimes(trialsEventInd & trialsRisingInd);
             trialsStop = e.out(1).eventTimes(trialsEventInd & ~trialsRisingInd);
             
-            assert(length(trialsStart) == length(trialsStop));
+            if (length(trialsStart)*2)>length(e.messages)
+                trialsStart(end) = [];
+            end
             
-            for i = 1:length(trialsStart)
-                e.trials(i).trialNumber = e.messages(i*2).trial;
-                e.trials(i).start = trialsStart(i);
-                e.trials(i).stop = trialsStop(i);
+            if length(trialsStart) ~= length(trialsStop)
+                for i = 1:length(trialsStart)-1
+                    e.trials(i).trialNumber = e.messages(i*2).trial;
+                    e.trials(i).start = trialsStart(i);
+                    e.trials(i).stop = trialsStop(i);
+                end
+                lastInd = length(trialsStart);
+                e.trials(lastInd).trialNumber = e.messages(end).trial;
+                e.trials(lastInd).start = trialsStart(lastInd);
+                e.trials(lastInd).stop = NaN;  %##if trial end not recorded
+            else
+                for i = 1:length(trialsStart)
+                    e.trials(i).trialNumber = e.messages(i*2).trial;
+                    e.trials(i).start = trialsStart(i);
+                    e.trials(i).stop = trialsStop(i);
+                end
             end
             
             stimRisingInd = (e.out(3).eventID == 1);
@@ -104,8 +116,12 @@ classdef eventData
             stimStart = e.out(3).eventTimes(stimRisingInd);
             stimStop = e.out(3).eventTimes(~stimRisingInd);
             
-            assert(length(stimStart) == length(stimStop));
-            assert(length(stimStart) == length(trialsStart));
+            if length(stimStart) > length(trialsStart)
+                if length(stimStart) == length(stimStop)
+                    stimStop(end) = [];
+                end
+                stimStart(end) = [];
+            end
             
             for i = 1:length(stimStart)
                 e.stim(i).trialNumber = e.trials(i).trialNumber;
@@ -199,10 +215,6 @@ classdef eventData
                         messages(i+3).trial = currTrial+1;
                     end
                 end
-            end
-            if mod(length(messages),2) == 1  %## not sure what to do when ends with trial start
-                messages(end+1) = messages(end);
-                messages(end).status=0;
             end
         end
         
