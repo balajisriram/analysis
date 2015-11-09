@@ -63,11 +63,16 @@ end
 % some special functions for the ISI plot
 set(handles.hist10MSAxis,'ButtonDownFcn',{@hist10MSAxis_ButtonDownFcn, handles});
 handles.output = hObject;
+handles.waveAxisHandles = cell(1,100); %## set waveAxisHandles to empty cell array
 % Update handles structure
 guidata(hObject, handles);
 
 % fill up the clusters panel
 clusterListPanel_Initialize(hObject, eventdata, handles);
+
+% ## initialize all the waveforms
+waveAxisPanel_Initialize(hObject, eventdata, handles);
+handles = guidata(hObject);
 
 % now update the axes
 updateAllAxes(hObject, eventdata, handles);
@@ -199,15 +204,61 @@ end
 % updateAllAxes
 function updateAllAxes(hObject, eventdata, handles)
 featureAxis_UpdateFcn(hObject, eventdata, handles);
-waveAxis_UpdateFcn(hObject, eventdata, handles);
 waveMeansAxis_UpdateFcn(hObject, eventdata, handles);
-linkaxes([handles.waveAxis handles.waveMeansAxis],'xy');
 hist10MSAxis_UpdateFcn(hObject, eventdata, handles);
 firingRateAxis_UpdateFcn(hObject, eventdata, handles);
 barChartWhole_UpdateFcn(hObject, eventdata, handles);
 barChartPart_UpdateFcn(hObject, eventdata, handles);
-
+handles = guidata(hObject);
+waveAxis_UpdateFcn(hObject, eventdata, handles);
+linkaxes([handles.waveAxis handles.waveMeansAxis],'xy');
 disp('done updating axes');
+end
+
+function waveAxisPanel_Initialize(hObject, eventdata, handles) 
+
+axes(handles.waveAxis); cla; hold on;
+
+sizspikeWaveforms = size(handles.trode.spikeWaveForms);
+if length(sizspikeWaveforms)==3
+    numChans = sizspikeWaveforms(3);
+    numSamps = sizspikeWaveforms(2);
+else
+    numChans = 1;
+    numSamps = sizspikeWaveforms(2);
+end
+
+clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
+for i = 1:length(clusterVisibilityValues)
+    thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
+    if length(thisCluster) > 10000
+        r = length(thisCluster).*rand(10000,1);
+        r = ceil(r);
+        block = 1:length(thisCluster);
+        block(r) = [];
+        thisCluster(block) = [];
+    end
+    if ~isempty(thisCluster)
+        switch numChans
+            case 1
+                handles.waveAxisHandles{i} = plot(handles.trode.spikeWaveForms(thisCluster,:)');
+            otherwise
+                xvals = 1:(numChans*numSamps);
+                numSpikes = size(handles.trode.spikeWaveForms(thisCluster,:,:),1);
+                yvals = reshape(handles.trode.spikeWaveForms(thisCluster,:,:),numSpikes,numChans*numSamps);
+                handles.waveAxisHandles{i} = plot(xvals,yvals,'visible','off');
+         end
+    end
+end
+
+handles.noiseInd = length(handles.trode.spikeRankedCluster);
+
+title('waveforms');
+set(gca,'XTick',[]);
+axis([1 numChans*numSamps  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
+
+guidata(hObject,handles);
+
 end
 
 % featureAxis
@@ -255,7 +306,7 @@ end
 % waveAxis
 function waveAxis_UpdateFcn(hObject, eventdata, handles)
 % select the axis
-axes(handles.waveAxis); cla; hold on;
+%axes(handles.waveAxis); cla; hold on;
 
 % now check if worth plotting
 if isempty(handles.trode.spikeEvents)
@@ -266,90 +317,40 @@ end
 
 % choose color scheme
 colors=getClusterColorValues(handles,handles.trode.spikeRankedCluster);
-% colors(1,:) = [1 0 0]; % red
 
 clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spikeRankedCluster);
 
-% now plot
-% for i=1:length(handles.trode.spikeRankedCluster)
-%     thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
-%     sizspikeWaveforms = size(handles.trode.spikeWaveForms);
-%     if length(sizspikeWaveforms)==3
-%         numChans = sizspikeWaveforms(3);
-%         numSamps = sizspikeWaveforms(2);
-%     else
-%         numChans = 1;
-%         numSamps = sizspikeWaveforms(2);
-%     end
-%     if ~isempty(thisCluster) && clusterVisibilityValues(i)
-%         switch numChans
-%             case 1
-%                 plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
-%             otherwise
-%                 for j = 1:numChans
-%                     
-%                     plot((j-1)*numSamps+(1:numSamps),handles.trode.spikeWaveForms(thisCluster,:,j)','color',colors(i,:));
-%                 end
-%         end
-%     end
-% end
-
-% ## Changed to increase speed of plotting. Tradeoff: for clusters with
-% over 10,000 spikes, plots 10,000 random spikes, not entire cluster.
-% However, this should display the cluster pretty accurately.
-
 for i = 1:length(clusterVisibilityValues)
     if clusterVisibilityValues(i)
-        thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(i));
-        if length(thisCluster) > 10000
-            r = length(thisCluster).*rand(10000,1);
-            r = ceil(r);
-            block = 1:length(thisCluster);
-            block(r) = [];
-            thisCluster(block) = [];
-        end
-        sizspikeWaveforms = size(handles.trode.spikeWaveForms);
-        if length(sizspikeWaveforms)==3
-            numChans = sizspikeWaveforms(3);
-            numSamps = sizspikeWaveforms(2);
-        else
-            numChans = 1;
-            numSamps = sizspikeWaveforms(2);
-        end
-        if ~isempty(thisCluster)
-            switch numChans
-                case 1
-                    plot(handles.trode.spikeWaveForms(thisCluster,:)','color',colors(i,:));
-                otherwise
-                    for j = 1:numChans
-                        plot((j-1)*numSamps+(1:numSamps),handles.trode.spikeWaveForms(thisCluster,:,j)','color',colors(i,:));
-                    end
-            end
-        end
-    end
-end
-
-if sum(clusterVisibilityValues) == 0
-    sizspikeWaveforms = size(handles.trode.spikeWaveForms);
-    if length(sizspikeWaveforms)==3
-        numChans = sizspikeWaveforms(3);
-        numSamps = sizspikeWaveforms(2);
+        set(handles.waveAxisHandles{i}, 'visible', 'on', 'color', colors(i,:));
     else
-        numChans = 1;
-        numSamps = sizspikeWaveforms(2);
+        set(handles.waveAxisHandles{i}, 'visible', 'off');
     end
 end
 
+sizspikeWaveforms = size(handles.trode.spikeWaveForms);
+if length(sizspikeWaveforms)==3
+    numChans = sizspikeWaveforms(3);
+    numSamps = sizspikeWaveforms(2);
+else
+    numChans = 1;
+    numSamps = sizspikeWaveforms(2);
+end
+
+axes(handles.waveAxis);
 title('waveforms');
 set(gca,'XTick',[]);
 axis([1 numChans*numSamps  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
+
 end
 
 
 % waveMeansAxis
 function waveMeansAxis_UpdateFcn(hObject, eventdata, handles)
 % select the axis
-axes(handles.waveMeansAxis); cla; hold on;
+axes(handles.waveMeansAxis); 
+cla; 
+hold on;
 
 % now check if worth plotting
 if isempty(handles.trode.spikeEvents)
@@ -386,7 +387,7 @@ end
 
 
 % hist10MSAxis
-function hist10MSAxis_UpdateFcn(hObject, eventdata, handles)
+function hist10MSAxis_UpdateFcn(~, eventdata, handles)
 
 % select the axis
 axes(handles.hist10MSAxis); cla; hold on;
@@ -527,6 +528,11 @@ colors = colors(colorPermOrder,:);
 handles.cMap = colors;
 guidata(hObject,handles);
 % colors(1,:) = [1,0,0];
+% if not empty, empty it now
+x = get(handles.clusterListPanel, 'Children');
+for i = 1:(length(x)-4)
+    delete(x(i));
+end
 for i = 1:length(rankedClusters)
     
     clusterName = sprintf('%d',rankedClusters(i));
@@ -581,7 +587,6 @@ end
 % barChartPart
 function barChartPart_UpdateFcn(hObject, eventdata, handles)
 
-
 % select the axis
 axes(handles.barChartPart); cla; hold on;
 % now check if worth plotting
@@ -611,10 +616,12 @@ spikeCounts(whichClusters) = [];
 spikeCounts = 100*spikeCounts/sum(spikeCounts);
 
 
-colors(whichClusters,:) = [];
+colors(whichClusters,:) = [];  % this colors is definitely different than one returned for other updates (only when theres one visible)
+
 if ~isempty(spikeCounts)
     barPart = bar(spikeCounts);
     set(get(barPart,'Children'),'FaceVertexCData',colors);
+    axis([0 length(spikeCounts)+1 0 1.1*(max(spikeCounts))]);
 end
 
 end
@@ -706,6 +713,17 @@ handles.trode.spikeAssignedCluster(ismember(handles.trode.spikeAssignedCluster,.
     handles.trode.spikeRankedCluster(whichClusters))) = mergedClusterNumber;
 handles.trode.spikeRankedCluster(ismember(handles.trode.spikeRankedCluster,...
     handles.trode.spikeRankedCluster(whichClusters))&(handles.trode.spikeRankedCluster~=mergedClusterNumber)) = [];
+
+mergeInto = min(whichClusters);
+emptyClust = setdiff(whichClusters, mergeInto);
+
+for i = 1:length(emptyClust)
+    handles.waveAxisHandles{mergeInto} = [handles.waveAxisHandles{mergeInto};handles.waveAxisHandles{emptyClust(i)}];
+    handles.waveAxisHandles{emptyClust(i)} = [];
+end
+
+
+handles.waveAxisHandles = shiftCellArray(handles);
 
 % ##zzz sets previously visible NOTE: SETS TO INDEX NOT VALUE
 handles.previouslyVisible = find(handles.trode.spikeRankedCluster == mergedClusterNumber);
@@ -806,6 +824,38 @@ handles.trode.spikeAssignedCluster(whichSpikes)=whichAssignedClusters;
 handles.previouslyVisible = find(handles.trode.spikeRankedCluster == whichCluster);
 handles.previouslyVisible(end+1) = find(handles.trode.spikeRankedCluster == newClusterNum);
 disp(handles.previouslyVisible)
+
+smallerIndexSpikes = find(handles.trode.spikeAssignedCluster==whichCluster);
+biggerIndexSpikes = find(handles.trode.spikeAssignedCluster==newClusterNum);
+
+% lengthSmaller = length(smallerIndexSpikes);
+% 
+% fullList = [smallerIndexSpikes;biggerIndexSpikes];
+% 
+% [~, preSortedInd] = sort(fullList);
+% 
+% smallerIndices = zeros(1, lengthSmaller);
+% biggerIndices = zeros(1, length(fullList)-lengthSmaller);
+% bigInd = 1;
+% smallInd = 1;
+% 
+% for i = 1:length(preSortedInd)
+%     if preSortedInd(i) > lengthSmaller
+%         biggerIndices(bigInd) = i;
+%         bigInd = bigInd + 1;
+%     else
+%         smallerIndices(smallInd) = i;
+%         smallInd = smallInd + 1;
+%     end
+% end
+
+smallerHandleInd = find(clusterVisibilityValues);
+biggerHandleInd = length(handles.trode.spikeRankedCluster);
+
+set(handles.waveAxisHandles{smallerHandleInd}, 'visible', 'off');
+handles.waveAxisHandles{biggerHandleInd} = redraw(handles, find(handles.trode.spikeRankedCluster == newClusterNum));
+handles.waveAxisHandles{smallerHandleInd} = redraw(handles, find(clusterVisibilityValues));
+
 
 % update the records
 guidata(hObject,handles);
@@ -939,6 +989,7 @@ else
     clusterVisibilityValues = clusterVisibilityValuesUnordered;
 end
 
+
 if all(~clusterVisibilityValues)
     noClusterError = errordlg('no clusters selected for merging','no cluster error');
     return;
@@ -974,6 +1025,14 @@ handles.trode.spikeRankedCluster(ismember(handles.trode.spikeRankedCluster,...
 % ##zzz sets previously visible NOTE: SETS TO INDEX NOT VALUE
 handles.previouslyVisible = find(handles.trode.spikeRankedCluster == mergedClusterNumber);
 disp(handles.previouslyVisible)
+
+for i = 1:length(whichClusters)    %## not combining references of noisy handles to noise cluster because makes unnecessary time costs
+    set(handles.waveAxisHandles{whichClusters(i)},'visible','off');
+    handles.waveAxisHandles{whichClusters(i)} = [];
+end
+
+
+handles.waveAxisHandles = shiftCellArray(handles);
 
 guidata(hObject,handles);
 % fill up the clusters panel
@@ -1018,6 +1077,13 @@ handles.trode.spikeRankedCluster(handles.trode.spikeRankedCluster==clusterNumber
 
 handles.previouslyVisible = []; % default to viewing nothing
 disp(handles.previouslyVisible)
+
+
+processedVisInd = find(clusterVisibilityValues);
+set(handles.waveAxisHandles{processedVisInd},'visible','off');
+handles.waveAxisHandles{processedVisInd} = [];
+
+handles.waveAxisHandles = shiftCellArray(handles);
 
 guidata(hObject,handles);
 % fill up the clusters panel
@@ -1098,6 +1164,64 @@ for i = 1:length(rankedClusters)
     index = find(strcmp(clusterSelectionStrings,sprintf('%d',rankedClusters(i))));
     clusterColorValues(i,:) = clusterColorValuesUnordered{index};
     
+end
+
+end
+
+
+
+function cArray = shiftCellArray(handles)
+    emptyPtr = 1;
+    cArray = handles.waveAxisHandles;
+    while(emptyPtr <= length(handles.trode.spikeRankedCluster))
+        if isempty(cArray{emptyPtr})
+            swapPtr = emptyPtr+1;
+            while (isempty(cArray{swapPtr}) && swapPtr <= 100)
+                swapPtr = swapPtr+1;
+            end
+            if isempty(cArray{swapPtr})
+                return
+            else
+                cArray{emptyPtr} = cArray{swapPtr};
+                cArray{swapPtr} = [];
+            end
+        else
+            emptyPtr = emptyPtr+1;
+        end
+    end
+end
+
+function handlePlotPtrs = redraw(handles, clust)
+
+axes(handles.waveAxis);
+
+sizspikeWaveforms = size(handles.trode.spikeWaveForms);
+if length(sizspikeWaveforms)==3
+    numChans = sizspikeWaveforms(3);
+    numSamps = sizspikeWaveforms(2);
+else
+    numChans = 1;
+    numSamps = sizspikeWaveforms(2);
+end
+
+thisCluster=find(handles.trode.spikeAssignedCluster==handles.trode.spikeRankedCluster(clust));
+if length(thisCluster) > 10000
+    r = length(thisCluster).*rand(10000,1);
+    r = ceil(r);
+    block = 1:length(thisCluster);
+    block(r) = [];
+    thisCluster(block) = [];
+end
+if ~isempty(thisCluster)
+    switch numChans
+        case 1
+            handlePlotPtrs = plot(handles.trode.spikeWaveForms(thisCluster,:)');
+        otherwise
+            xvals = 1:(numChans*numSamps);
+            numSpikes = size(handles.trode.spikeWaveForms(thisCluster,:,:),1);
+            yvals = reshape(handles.trode.spikeWaveForms(thisCluster,:,:),numSpikes,numChans*numSamps);
+            handlePlotPtrs = plot(xvals,yvals,'visible','off');
+    end
 end
 
 end
