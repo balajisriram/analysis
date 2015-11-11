@@ -49,7 +49,6 @@ classdef trode
             tr.Std = [];
             warn.flag = -1;
             for i = 1:length(tr.chans)
-                
                 a = dir(fullfile(dataPath,sprintf('100_CH%d.continuous',tr.chans(i)))); % ## make sure to process only 100_CH files
                 if length(a)>1
                     error('too many records');
@@ -129,7 +128,7 @@ classdef trode
         end    
         
         function out = getReport(tr)
-            numUnits = tr.numUnits()
+            numUnits = tr.numUnits();
             out = struct;
             for i = 1:numUnits
                 out.unitDetails{i} = tr.units(i).getReport();

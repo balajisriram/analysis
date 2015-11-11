@@ -50,7 +50,7 @@ classdef eventData
         
         function e = getChannelEvents(e)
             %opens messages file
-            [e.messages, e.specialCases] = eventData.openMessages(fullfile(e.eventFolder,'messages.events'));
+            [e.messages] = eventData.openMessages(fullfile(e.eventFolder,'messages.events'));
             
             %tries to fix errors generated when parsing messages.event file
             %[e.messages, e.specialCases] = fixMessageParseErrors(e.messages);
@@ -146,7 +146,37 @@ classdef eventData
     end
     
     methods(Static)
-        function [messages, specialCase] = openMessages(filename)
+        function [messages] = openMessages(filename)
+            fid = fopen(filename);
+            tline = fgets(fid);
+            trial = 1;
+            k = 1;
+            while isempty(strfind(tline,'TrialStart'))
+                tline = fgets(fid);
+            end
+            while ischar(tline)
+                index = str2num(tline(1:strfind(tline,' ')-1));
+                if isempty(strfind(tline,'TrialEnd')) % if is trial start
+                    ind = strfind(tline,'::');
+                    i=2;
+                    while str2num(tline(ind+i)) >= 0
+                        i = i + 1;
+                    end
+                    trial = str2num(tline(ind+2:ind+i-1));
+                    messages(k).index = index;
+                    messages(k).status = 1;
+                    messages(k).trial = trial;
+                else % else is trial end
+                    messages(k).index = index;
+                    messages(k).status = 0;
+                    messages(k).trial = trial;
+                end
+                k = k+1;
+                tline = fgets(fid);
+            end
+        end
+        
+        function [messages, specialCase] = openMessagesOld(filename)
             fid = fopen(filename);
             tline = fgets(fid);
             k=1;

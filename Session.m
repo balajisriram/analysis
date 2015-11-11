@@ -7,11 +7,11 @@ classdef Session
         electrode % grouping of electrodes. (single or multi-channel).
         monitor   % all 3 of these object in the 'hardware' folder
         rig
+        trials
         
         sessionPath   
         sessionFolder  
         trialDataPath 
-        trials
         
         trodes
         eventData

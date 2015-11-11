@@ -46,29 +46,31 @@ spikesFound = zeros(1, length(files));
 spikesRates = zeros(1, length(files));
 currChannel = 1;
 for file = files'
-    currChannel = str2num( file.name(find(file.name=='H')+1:find(file.name=='.')-1));
-    [data, timestamps, info] = load_open_ephys_data([continFolder,'\',file.name]);
-    noiseSpikes = (1-0.999999426696856)*length(data);
-    
-    % ## filter data
-    N=round(min(30000/200,floor(size(data,1)/3))); %how choose filter orders? one extreme bound: Data must have length more than 3 times filter order.
-    [b,a]=fir1(N,2*[200 10000]/30000);
-    filteredSignal=filtfilt(b,a,data);
-    
-    %2. gets mean and stdDev for upper/lower bounds
-    mVal = mean(filteredSignal); % ## mean and std of filtered data
-    stdDev = std(filteredSignal);
-    i = 1;
-    
-    filteredSignalTop = (filteredSignal>(mVal+5*stdDev));
-    filteredSignalBot = (filteredSignal<(mVal-5*stdDev));
-    numSpikesTop = sum(diff(filteredSignalTop) ==1);
-    numSpikesBot = sum(diff(filteredSignalBot) ==1);
-    spikeRate = (numSpikesTop+numSpikesBot-noiseSpikes)/(length(filteredSignal)/30000);
-    spikesFound(currChannel) = numSpikesTop+numSpikesBot;
-    spikesRates(currChannel) = spikeRate;
-    
-    whichChansDisabled = find(spikesRates<thresholdFiringRate);
+    if ~isempty(strfind(file.name, '100_CH'))
+        currChannel = str2num( file.name(find(file.name=='H')+1:find(file.name=='.')-1));
+        [data, timestamps, info] = load_open_ephys_data([continFolder,'\',file.name]);
+        noiseSpikes = (1-0.999999426696856)*length(data);
+
+        % ## filter data
+        N=round(min(30000/200,floor(size(data,1)/3))); %how choose filter orders? one extreme bound: Data must have length more than 3 times filter order.
+        [b,a]=fir1(N,2*[200 10000]/30000);
+        filteredSignal=filtfilt(b,a,data);
+
+        %2. gets mean and stdDev for upper/lower bounds
+        mVal = mean(filteredSignal); % ## mean and std of filtered data
+        stdDev = std(filteredSignal);
+        i = 1;
+
+        filteredSignalTop = (filteredSignal>(mVal+5*stdDev));
+        filteredSignalBot = (filteredSignal<(mVal-5*stdDev));
+        numSpikesTop = sum(diff(filteredSignalTop) ==1);
+        numSpikesBot = sum(diff(filteredSignalBot) ==1);
+        spikeRate = (numSpikesTop+numSpikesBot-noiseSpikes)/(length(filteredSignal)/30000);
+        spikesFound(currChannel) = numSpikesTop+numSpikesBot;
+        spikesRates(currChannel) = spikeRate;
+
+        whichChansDisabled = find(spikesRates<thresholdFiringRate);
+    end
 end
 
 % 4. construct rankings array using number of spikes found. 
