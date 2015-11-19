@@ -14,6 +14,7 @@ classdef eventData
         RewL
         RewC
         RewR
+        trialData
         
         messages
         specialCases
@@ -40,6 +41,7 @@ classdef eventData
             
             e = e.getChannelEvents();
             e = e.getTrialEvents();
+            e = e.getTrialData();
             e = e.getOtherMessages();
         end
         
@@ -138,6 +140,19 @@ classdef eventData
                 
                 e.frame(i).trialNumber = e.trials(i).trialNumber;
                 e.frame(i).start = e.out(2).eventTimes(frameRisingInd & frameTimeInd);
+            end
+        end
+        
+        function e = getTrialData(e)
+            fPath = [e.eventFolder,'\stimRecords\stim*'];
+            files = dir(fPath);
+            for i = 1:length(files)
+                load([e.eventFolder,'\stimRecords\',files(i).name]);
+                e.trialData(trialNum).trialNum = trialNum;
+                e.trialData(trialNum).refreshRate = refreshRate;
+                e.trialData(trialNum).stepName = stepName;
+                e.trialData(trialNum).stimManagerClass = stimManagerClass;
+                e.trialData(trialNum).stimulusDetails = stimulusDetails;
             end
         end
         
