@@ -17,14 +17,22 @@ raster = cell(1,length(trials));
 freq = sess.trodes(1).detectParams.samplingFreq; 
 rangeInSamps = (range/1000)*freq; %ms to samples
 
-for i = 1:length(trials)
 
-    stimOnsetInd = sess.eventData.stim(trials(i)).start*freq;
-    minInd = stimOnsetInd-rangeInSamps(1);
-    maxInd = stimOnsetInd+rangeInSamps(2);
-    raster{i} = find(unit.index >= minInd & unit.index <= maxInd);
-   
+
+stimOnsetInd = [sess.eventData.stim(trials).start]*freq;
+minInd = stimOnsetInd-rangeInSamps(1);
+maxInd = stimOnsetInd+rangeInSamps(2);
+
+for i = 1:length(maxInd)
+    sampInd = minInd(i):maxInd(i);
+    which = intersect(unit.index, sampInd)-minInd(i)+1;
+    inds = zeros(1,length(sampInd));
+    inds(which) = 1;
+    raster{i} = inds;
 end
+
+
+
 
 end
 
