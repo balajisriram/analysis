@@ -52,9 +52,7 @@ classdef Session
             currDir = pwd; 
             if strcmp(currDir, 'C:\Users\Ghosh\Desktop\analysis') ~= 1
                 error('Running from wrong folder, must run from analysis base folder');
-            end
-
-            
+            end   
             
             % 1. get events data (##pass in correct file)
             session.eventData = eventData(session.trialDataPath);
@@ -82,26 +80,25 @@ classdef Session
             catch ex
                 session = session.addToHistory('Error',ex);
                 fName = saveSession(session);
-                %keyboard
             end
         end      
         
         function session = detectSpikes(session)
             for i = 1:length(session.trodes)
-                dataPath = fullfile(session.sessionPath,session.sessionFolder);
+                dataPath = fullfile(session.sessionPath,session.sessionFolder); %finds corresponding .continuous file
                 try
-                    [session.trodes(i), warn] = session.trodes(i).detectSpikes(dataPath, session);
-                    det.identifier = ['Session.detectSpikes ' ,datestr(now)];
+                    [session.trodes(i), warn] = session.trodes(i).detectSpikes(dataPath, session); %detects spikes
+                    det.identifier = ['Session.detectSpikes ' ,datestr(now)];          
                     det.message = sprintf('detected on trode %d of %d',i, length(session.trodes));
                     session = session.addToHistory('Completed',det);
                 
-                    if warn.flag==1
+                    if warn.flag==1 % if bad timestamps found while detecting
                         det.identifier = ['BAD_TIMESTAMPS'];
                         det.message = warn;
-                        session = session.addToHistory('Completed',det);
+                        session = session.addToHistory('Completed',det); %saves any bad timestamps to history
                     end
                     
-                    fName = saveSession(session);
+                    fName = saveSession(session); %save after each trode in case failure
                 catch ex
                     session = session.addToHistory('Error',ex);
                     fName = saveSession(session);
@@ -124,7 +121,7 @@ classdef Session
             end
         end
         
-        function session = inspectSpikes(session,k) % ## added k to start from certain trode if partially complete
+        function session = inspectSpikes(session,k) % added k to start from certain trode if partially complete
             for i = k:length(session.trodes)
                 try
                     session.trodes(i) = session.trodes(i).inspectSpikes();
@@ -156,14 +153,16 @@ classdef Session
             end            
         end
         
+        % gets start and end index for a trial
         function [startInd,stopInd] = getTrialIndexRange(sess, trial) 
-            [startTime, endTime] =  getTrialStartStopTime(sess, trial);
+            [startTime, endTime] =  getTrialStartStopTime(sess, trial); 
             samplingFreq = sess.trodes(1).detectParams.samplingFreq;
             
             startInd = startTime*samplingFreq;
             stopInd = endTime*samplingFreq;
         end
         
+        % gets start and end time for a trial
         function [startTime, endTime] =  getTrialStartStopTime(sess, trial)
             if trial > getMaxTrial(sess) || trial < getMinTrial(sess)
                 error('ERROR: trial out of range of session');
@@ -182,6 +181,7 @@ classdef Session
             endTime = sess.eventData.trials(ind).stop;
         end
         
+        % gets the events for a passed in trial
         function trialEvents = getTrialEvents(sess, trial)
             [startTime, endTime] =  getTrialStartStopTime(sess, trial);
             
@@ -196,6 +196,7 @@ classdef Session
             end
         end
         
+        % plots the events for a passed in trial
         function success = plotTrialEvents(sess, trial)
             success = true;
             samplingFreq = sess.trodes(1).detectParams.samplingFreq;
@@ -208,7 +209,7 @@ classdef Session
             trialEvents = getTrialEvents(sess, trial);
             
             figure; hold on;
-            for i = 1:numChans
+            for i = 1:numChans %for each channel in out data
 
                 eventID = trialEvents(i).eventID;
                 eventTimes = trialEvents(i).eventTimes;
@@ -238,8 +239,9 @@ classdef Session
             end
         end
         
+        % gets the duration of frame and stim for all trials of a session.
         function [trialNumber, frameDuration, stimDuration] = getFrameStimDuration(sess)
-            maxTrial = getMaxTrial(sess);
+            maxTrial = getMaxTrial(sess);  
             minTrial = getMinTrial(sess);
             
             numTrials = maxTrial-minTrial;
@@ -250,16 +252,16 @@ classdef Session
             stimStop = zeros(1, numTrials);
             
             j = 1;
-            for i = minTrial:maxTrial
+            for i = minTrial:maxTrial %for each trial
                 trialEvents = getTrialEvents(sess, i);
-                if isempty(trialEvents(2).eventTimes)
+                if isempty(trialEvents(2).eventTimes) %if no frame data
                     frameStart(j) = 0;
                     frameStop(j) = 0;
                 else
                     frameStart(j) = trialEvents(2).eventTimes(1);
                     frameStop(j) = trialEvents(2).eventTimes(end);
                 end
-                if isempty(trialEvents(3).eventTimes)
+                if isempty(trialEvents(3).eventTimes)  % if no stim data
                     stimStart(j) = 0;
                     stimStop(j) = 0;
                 else
@@ -283,7 +285,7 @@ classdef Session
             end
         end
         
-        %## to add more information to eventData class
+        %to add more information to eventData class
         function sess = addToEventData(sess)
             sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
             %sess.eventData = eventData();

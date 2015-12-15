@@ -19,10 +19,10 @@ classdef KlustaKwik <spikeSortingParam
                     switch varargin{1}
                         case 'KlustaKwikStandard'
                             s.minClusters = 4;
-                            s.maxClusters = 40;
+                            s.maxClusters = 30;
                             s.nStarts = 1;
                             s.splitEvery = 5;
-                            s.maxPossibleClusters = 50;
+                            s.maxPossibleClusters = 30; %## set max possible cluster to 30 for quicker processing.
                             s.featureList = {'tenPCs'};
                             s.arrangeClustersBy = 'averageAmplitude';
                             s.postProcessing ='biggestAverageAmplitudeCluster';
