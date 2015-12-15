@@ -16,7 +16,7 @@ trialDataPath = fullfile(sessionPath,sessionFolder);
 
 sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, monitor, rigState);
 
-sess = process(sess);
+sess = process(sess, 'phys');
     
 saveSession(sess);
 

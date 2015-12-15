@@ -1,11 +1,18 @@
 classdef eventData
-    
-    % out format:
+    % 
+    % out format: (phys) 
     % mapped to channels on hardware:
     %   channel 0: trial start/stop
     %   channel 1: frames onset
     %   channel 2: stim onset
     %   channel 7: LED ?
+    %
+    % out format: (behavior)
+    % mapped to channels on hardware:
+    %   channel 0 = stim
+    %   channel 3 = right lick (inverted)
+    %   channel 4 = frames (inverted)
+    %   channel 6 = center lick (inverted)
     %
     % has following fields:
     %   channelNum = channel this index is mapped to
@@ -13,7 +20,8 @@ classdef eventData
     %   eventID = 1 for rising edge 0 for falling edge
     %   eventType = 3 for TTL, 5 for network
     %   sampNum = index of start time
-    
+    %
+    %
     
     properties
         eventFolder
@@ -50,12 +58,12 @@ classdef eventData
     end
     
     methods
-        function e = eventData(foldername)
+        function e = eventData(foldername, mappings)
             assert(isdir(foldername),'events folder unavailable');
             e.eventFolder = foldername;
             
             e = e.getChannelEvents();
-            e = e.getTrialEvents();         
+            e = e.getTrialEvents(mappings);         
             e = e.getTrialInfo();
             e = e.getOtherMessages();
         end
@@ -132,9 +140,37 @@ classdef eventData
             end
         end
         
+        
         %dont save LEDData yet
-        function e = getLEDData(e, ind)
+%         function e = getLEDData(e, ind)
+%         end
+        
+        function e = getCenterLickData(e, ind)
+            lickRisingInd = (e.out(ind).eventID == 1);
+            
+            lickOn = e.out(ind).eventTimes(lickRisingInd);
+            lickOff = e.out(ind).eventTimes(~lickRisingInd);
+            
+            for i = 1:length(lickOn)
+                e.LickC(i).trialNumber = getTrialByTime(e.messages, lickOn(i));
+                e.LickC(i).start = lickOn(i);
+                e.LickC(i).stop = lickOff(i);
+            end
         end
+        
+        function e = getRightLickData(e, ind)
+            lickRisingInd = (e.out(ind).eventID == 1);
+            
+            lickOn = e.out(ind).eventTimes(lickRisingInd);
+            lickOff = e.out(ind).eventTimes(~lickRisingInd);
+            
+            for i = 1:length(lickOn)
+                e.LickR(i).trialNumber = getTrialByTime(e.messages, lickOn(i));
+                e.LickR(i).start = lickOn(i);
+                e.LickR(i).stop = lickOff(i);
+            end
+        end
+        
         
         % uses provided OpenEphys method to get event data from
         % all_channels.events file.
@@ -171,27 +207,39 @@ classdef eventData
         end
 
         % Extracts trial data from out for easier access and cleaner
-        % organization. 
-        %
-        % Assumes the following hardware mappings:
-        %   channelNum 0 == trialEvents
-        %   channelNum 1 == frameEvents
-        %   channelNum 2 == stimEvents
-        %   channelNum 7 == LEDEvents
-        function e = getTrialEvents(e)
-            for i = 1:length(e.out)
-                switch e.out(i).channelNum
-                    case 0 
-                        e = e.getTrialData(i);
-                    case 1 
-                        e = e.getFrameData(i);
-                    case 2 
-                        e = e.getStimData(i);
-                    case 7 
-                        continue 
-                        %e = e.getLEDData(i); dont save LEDData specially for now
-                    otherwise %otherwise do nothing
-                        continue;
+        % organization. Uses mappings to decide how to map channels to
+        % corresponding events
+        function e = getTrialEvents(e, mappings)
+            if strcmp(upper(mappings),'PHYS') 
+                for i = 1:length(e.out)
+                    switch e.out(i).channelNum
+                        case 0 
+                            e = e.getTrialData(i);
+                        case 1 
+                            e = e.getFrameData(i);
+                        case 2 
+                            e = e.getStimData(i);
+                        case 7 
+                            continue 
+                            %e = e.getLEDData(i); dont save LEDData specially for now
+                        otherwise %otherwise do nothing
+                            continue;
+                    end
+                end
+            elseif strmp(upper(mappings),'BEHAVIOR')
+                for i = 1:length(e.out)
+                    switch e.out(i).channelNum
+                        case 0
+                            e = e.getStimData(i);
+                        case 3
+                            e = e.getRightLickData(i);
+                        case 4
+                            e = e.getFrameData(i);
+                        case 6
+                            e = e.getCenterLickData(i);
+                        otherwise
+                            continue;
+                    end
                 end
             end
         end
@@ -207,6 +255,20 @@ classdef eventData
                 e.trialData(trialNum).stepName = stepName;
                 e.trialData(trialNum).stimManagerClass = stimManagerClass;
                 e.trialData(trialNum).stimulusDetails = stimulusDetails;
+            end
+        end
+        
+        function trial = getTrialByTime(messages, time)
+            if time < messages(1).index/30000 % ## samp rate hard coded
+                trial = 0;
+                return;
+            end
+            for i = 1:length(messages)
+                trialTime = messages(i).index/30000;
+                if trialTime >= time
+                    trial = messages(i-1).trial;
+                    return
+                end
             end
         end
         

@@ -47,15 +47,15 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
-        function session = process(session) 
+        function session = process(session, mappings) 
             
             currDir = pwd; 
-            if strcmp(currDir, 'C:\Users\Ghosh\Desktop\analysis') ~= 1
-                error('Running from wrong folder, must run from analysis base folder');
-            end   
+%             if strcmp(currDir, 'C:\Users\Ghosh\Desktop\analysis') ~= 1
+%                 error('Running from wrong folder, must run from analysis base folder');
+%             end   
             
             % 1. get events data (##pass in correct file)
-            session.eventData = eventData(session.trialDataPath);
+            session.eventData = eventData(session.trialDataPath, mappings);
             
             % 2. get the trodes for the electrode
             session.trodes = session.electrode.getPotentialTrodes(session.sessionPath,session.sessionFolder);
