@@ -1,4 +1,27 @@
 classdef eventData
+    % 
+    % out format: (phys) 
+    % mapped to channels on hardware:
+    %   channel 0: trial start/stop
+    %   channel 1: frames onset
+    %   channel 2: stim onset
+    %   channel 7: LED ?
+    %
+    % out format: (behavior)
+    % mapped to channels on hardware:
+    %   channel 0 = stim
+    %   channel 3 = right lick (inverted)
+    %   channel 4 = frames (inverted)
+    %   channel 6 = center lick (inverted)
+    %
+    % has following fields:
+    %   channelNum = channel this index is mapped to
+    %   eventTimes = time which event occurs
+    %   eventID = 1 for rising edge 0 for falling edge
+    %   eventType = 3 for TTL, 5 for network
+    %   sampNum = index of start time
+    %
+    %
     
     properties
         eventFolder
@@ -35,13 +58,13 @@ classdef eventData
     end
     
     methods
-        function e = eventData(foldername)
+        function e = eventData(foldername, mappings)
             assert(isdir(foldername),'events folder unavailable');
             e.eventFolder = foldername;
             
             e = e.getChannelEvents();
-            e = e.getTrialEvents();
-            e = e.getTrialData();
+            e = e.getTrialEvents(mappings);         
+            e = e.getTrialInfo();
             e = e.getOtherMessages();
         end
         
@@ -49,13 +72,111 @@ classdef eventData
     end
     
     methods
+        %gets trial eventData
+        function e = getTrialData(e, ind)
+            trialsEventInd = (e.out(ind).eventType==3); %only want TTL trials
+            trialsRisingInd = (e.out(ind).eventID==1);     
+            
+            trialsStart = e.out(ind).eventTimes(trialsEventInd & trialsRisingInd);
+            trialsStop = e.out(ind).eventTimes(trialsEventInd & ~trialsRisingInd);
+            
+            if (length(trialsStart)*2)>length(e.messages) %if we dont have data for last trial
+                trialsStart(end) = [];
+            end
+            
+            if length(trialsStart) ~= length(trialsStop)   %if last trial does not have an end in messages
+                for i = 1:length(trialsStart)-1
+                    e.trials(i).trialNumber = e.messages(i*2).trial;
+                    e.trials(i).start = trialsStart(i);
+                    e.trials(i).stop = trialsStop(i);
+                end
+                lastInd = length(trialsStart);  %special case for that trial
+                e.trials(lastInd).trialNumber = e.messages(end).trial;
+                e.trials(lastInd).start = trialsStart(lastInd);
+                e.trials(lastInd).stop = NaN;  %set end to NaN
+            else
+                for i = 1:length(trialsStart) % normal case
+                    e.trials(i).trialNumber = e.messages(i*2).trial;
+                    e.trials(i).start = trialsStart(i);
+                    e.trials(i).stop = trialsStop(i);
+                end
+            end
+        end
         
+        %gets frame event data
+        function e = getFrameData(e, ind)
+           for i = 1:2:length(e.messages)
+               minTime = e.messages(i).index/30000;
+               if i == length(e.messages)           %if no end in messages
+                   frameRisingInd = (e.out(ind).eventID == 1);
+                   frameTimeInd = ((e.out(ind).eventTimes >= minTime));
+
+                   index = ceil(i/2);
+                   e.frame(index).trialNumber = e.messages(i).trial;
+                   e.frame(index).start = e.out(ind).eventTimes(frameRisingInd & frameTimeInd);
+               else
+                   maxTime = e.messages(i+1).index/30000;
+                   frameRisingInd = (e.out(ind).eventID == 1);
+                   frameTimeInd = ((e.out(ind).eventTimes >= minTime) & (e.out(ind).eventTimes <= maxTime));
+
+                   index = ceil(i/2);
+                   e.frame(index).trialNumber = e.messages(i).trial;
+                   e.frame(index).start = e.out(ind).eventTimes(frameRisingInd & frameTimeInd);
+               end
+            end
+        end
+        
+        %gets stim event data
+        function e = getStimData(e, ind)
+            stimRisingInd = (e.out(ind).eventID == 1);
+            
+            stimStart = e.out(ind).eventTimes(stimRisingInd);
+            stimStop = e.out(ind).eventTimes(~stimRisingInd);
+
+            for i = 1:length(stimStart)
+                e.stim(i).trialNumber = e.messages(i*2-1).trial;
+                e.stim(i).start = stimStart(i);
+                e.stim(i).stop = stimStop(i);
+            end
+        end
+        
+        
+        %dont save LEDData yet
+%         function e = getLEDData(e, ind)
+%         end
+        
+        function e = getCenterLickData(e, ind)
+            lickRisingInd = (e.out(ind).eventID == 1);
+            
+            lickOn = e.out(ind).eventTimes(lickRisingInd);
+            lickOff = e.out(ind).eventTimes(~lickRisingInd);
+            
+            for i = 1:length(lickOn)
+                e.LickC(i).trialNumber = getTrialByTime(e.messages, lickOn(i));
+                e.LickC(i).start = lickOn(i);
+                e.LickC(i).stop = lickOff(i);
+            end
+        end
+        
+        function e = getRightLickData(e, ind)
+            lickRisingInd = (e.out(ind).eventID == 1);
+            
+            lickOn = e.out(ind).eventTimes(lickRisingInd);
+            lickOff = e.out(ind).eventTimes(~lickRisingInd);
+            
+            for i = 1:length(lickOn)
+                e.LickR(i).trialNumber = getTrialByTime(e.messages, lickOn(i));
+                e.LickR(i).start = lickOn(i);
+                e.LickR(i).stop = lickOff(i);
+            end
+        end
+        
+        
+        % uses provided OpenEphys method to get event data from
+        % all_channels.events file.
         function e = getChannelEvents(e)
             %opens messages file
             [e.messages] = eventData.openMessages(fullfile(e.eventFolder,'messages.events'));
-            
-            %tries to fix errors generated when parsing messages.event file
-            %[e.messages, e.specialCases] = fixMessageParseErrors(e.messages);
             
             %opens event file, gets info
             [eventTimes, eventID, eventChannel, eventType, sampNum] = eventData.openEvents(fullfile(e.eventFolder,'all_channels.events'));
@@ -76,6 +197,7 @@ classdef eventData
                 eventTypeThatChannelUniq = eventTypeThatChannel(ia);
                 sampNumThatChannelUniq = sampNumThatChannel(ia);
                 
+                %stores data in e.out field
                 e.out(i).channelNum = whichChans(i);
                 e.out(i).eventTimes = eventTimesThatChannelUniq;
                 e.out(i).eventID = eventIDThatChannelUniq;
@@ -83,67 +205,47 @@ classdef eventData
                 e.out(i).sampNum = sampNumThatChannelUniq;
             end
         end
-        
-        function e = getTrialEvents(e)
-            trialsEventInd = (e.out(1).eventType==3);
-            trialsRisingInd = (e.out(1).eventID==1);          
-            
-            trialsStart = e.out(1).eventTimes(trialsEventInd & trialsRisingInd);
-            trialsStop = e.out(1).eventTimes(trialsEventInd & ~trialsRisingInd);
-            
-            if (length(trialsStart)*2)>length(e.messages)
-                trialsStart(end) = [];
-            end
-            
-            if length(trialsStart) ~= length(trialsStop)
-                for i = 1:length(trialsStart)-1
-                    e.trials(i).trialNumber = e.messages(i*2).trial;
-                    e.trials(i).start = trialsStart(i);
-                    e.trials(i).stop = trialsStop(i);
+
+        % Extracts trial data from out for easier access and cleaner
+        % organization. Uses mappings to decide how to map channels to
+        % corresponding events
+        function e = getTrialEvents(e, mappings)
+            if strcmp(upper(mappings),'PHYS') 
+                for i = 1:length(e.out)
+                    switch e.out(i).channelNum
+                        case 0 
+                            e = e.getTrialData(i);
+                        case 1 
+                            e = e.getFrameData(i);
+                        case 2 
+                            e = e.getStimData(i);
+                        case 7 
+                            continue 
+                            %e = e.getLEDData(i); dont save LEDData specially for now
+                        otherwise %otherwise do nothing
+                            continue;
+                    end
                 end
-                lastInd = length(trialsStart);
-                e.trials(lastInd).trialNumber = e.messages(end).trial;
-                e.trials(lastInd).start = trialsStart(lastInd);
-                e.trials(lastInd).stop = NaN;  %##if trial end not recorded
-            else
-                for i = 1:length(trialsStart)
-                    e.trials(i).trialNumber = e.messages(i*2).trial;
-                    e.trials(i).start = trialsStart(i);
-                    e.trials(i).stop = trialsStop(i);
+            elseif strmp(upper(mappings),'BEHAVIOR')
+                for i = 1:length(e.out)
+                    switch e.out(i).channelNum
+                        case 0
+                            e = e.getStimData(i);
+                        case 3
+                            e = e.getRightLickData(i);
+                        case 4
+                            e = e.getFrameData(i);
+                        case 6
+                            e = e.getCenterLickData(i);
+                        otherwise
+                            continue;
+                    end
                 end
-            end
-            
-            stimRisingInd = (e.out(3).eventID == 1);
-            
-            stimStart = e.out(3).eventTimes(stimRisingInd);
-            stimStop = e.out(3).eventTimes(~stimRisingInd);
-            
-            if length(stimStart) > length(trialsStart)
-                if length(stimStart) == length(stimStop)
-                    stimStop(end) = [];
-                end
-                stimStart(end) = [];
-            end
-            
-            for i = 1:length(stimStart)
-                e.stim(i).trialNumber = e.trials(i).trialNumber;
-                e.stim(i).start = stimStart(i);
-                e.stim(i).stop = stimStop(i);
-            end
-            
-            for i = 1:length(e.trials)
-                minTime = e.trials(i).start;
-                maxTime = e.trials(i).stop;
-                
-                frameRisingInd = (e.out(2).eventID == 1);
-                frameTimeInd = ((e.out(2).eventTimes >= minTime) & (e.out(2).eventTimes <= maxTime));
-                
-                e.frame(i).trialNumber = e.trials(i).trialNumber;
-                e.frame(i).start = e.out(2).eventTimes(frameRisingInd & frameTimeInd);
             end
         end
         
-        function e = getTrialData(e)
+        % Grabs trialInfo from stim records stored in data folder
+        function e = getTrialInfo(e)
             fPath = [e.eventFolder,'\stimRecords\stim*'];
             files = dir(fPath);
             for i = 1:length(files)
@@ -156,25 +258,49 @@ classdef eventData
             end
         end
         
+        function trial = getTrialByTime(messages, time)
+            if time < messages(1).index/30000 % ## samp rate hard coded
+                trial = 0;
+                return;
+            end
+            for i = 1:length(messages)
+                trialTime = messages(i).index/30000;
+                if trialTime >= time
+                    trial = messages(i-1).trial;
+                    return
+                end
+            end
+        end
+        
         function e = getOtherMessages(e)
         end
     end
     
     methods(Static)
+        % Opens messages.events text file to extract trial start/end data
+        % from it.
+        % Assumes a strict structure of messages text file:
+        %   TrialStart::TrialNumber    (TrialStart is constant, TrialNumber
+        %                               is whatever trial number currently
+        %                               is)
+        %   TrialEnd
+        %
+        % Messages files goes back and forth from a TrialStart line to a
+        % TrialEnd line. 
         function [messages] = openMessages(filename)
             fid = fopen(filename);
             tline = fgets(fid);
             trial = 1;
             k = 1;
-            while isempty(strfind(tline,'TrialStart'))
+            while isempty(strfind(tline,'TrialStart')) %go to first line containing trialStart
                 tline = fgets(fid);
             end
-            while ischar(tline)
+            while ischar(tline)  %while not the end of file
                 index = str2num(tline(1:strfind(tline,' ')-1));
                 if isempty(strfind(tline,'TrialEnd')) % if is trial start
                     ind = strfind(tline,'::');
                     i=2;
-                    while str2num(tline(ind+i)) >= 0
+                    while str2num(tline(ind+i)) >= 0 %gets number of digits in trial number
                         i = i + 1;
                     end
                     trial = str2num(tline(ind+2:ind+i-1));
@@ -191,6 +317,8 @@ classdef eventData
             end
         end
         
+        % DEPRECATED: used to use this before when messages file were saved
+        % incorrectly. openMessages(filename) method now replaces.
         function [messages, specialCase] = openMessagesOld(filename)
             fid = fopen(filename);
             tline = fgets(fid);
@@ -263,6 +391,7 @@ classdef eventData
             end
         end
         
+        % OpenEphys provided openEvents method
         function [timestamps eventID eventChannel eventType sampleNum] = openEvents(filename)
             % [uint8 int64 uint8 uint8 uint8] = openEvents(String)
             %  Modified version of OpenEphys's 'load_open_ephys_data' function to store

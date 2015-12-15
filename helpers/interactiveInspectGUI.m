@@ -1173,10 +1173,11 @@ end
 function cArray = shiftCellArray(handles)
     emptyPtr = 1;
     cArray = handles.waveAxisHandles;
+
     while(emptyPtr <= length(handles.trode.spikeRankedCluster))
         if isempty(cArray{emptyPtr})
             swapPtr = emptyPtr+1;
-            while (isempty(cArray{swapPtr}) && swapPtr <= 100)
+            while (isempty(cArray{swapPtr}) && swapPtr < 100)
                 swapPtr = swapPtr+1;
             end
             if isempty(cArray{swapPtr})
