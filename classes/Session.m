@@ -17,6 +17,10 @@ classdef Session
         eventData
                 
         history       = {};
+        
+        IsInspected = false;
+        refreshRate = NaN;
+        samplingFreq = NaN;
     end
     methods
         function sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, mon, rigState)
@@ -67,7 +71,6 @@ classdef Session
             catch ex
                 session = session.addToHistory('Error',ex);
                 fName = saveSession(session);
-                %keyboard
             end
             
             %saves session just in case failure before sorting occurs
@@ -140,6 +143,7 @@ classdef Session
                     fName = saveSessionGUI(session);
                 end
             end
+            session.IsInspected = true;
         end
         
         % gets smallest trial number
@@ -161,7 +165,7 @@ classdef Session
         end
         
         % gets start and end index for a trial
-        function [startInd,stopInd] = getTrialIndexRange(sess, trial) 
+        function [startInd,stopInd] = getIndexForTrial(sess, trial) 
             [startTime, endTime] =  getTrialStartStopTime(sess, trial); 
             samplingFreq = sess.trodes(1).detectParams.samplingFreq;
             
@@ -208,7 +212,7 @@ classdef Session
             success = true;
             samplingFreq = sess.trodes(1).detectParams.samplingFreq;
             
-            [start,stop] = getTrialIndexRange(sess, trial);
+            [start,stop] = sess.getIndexForTrial(trial);
 
             xAxis = (start-1000:stop+1000);
             numChans = length(sess.eventData.out);
