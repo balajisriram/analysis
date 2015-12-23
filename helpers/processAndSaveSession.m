@@ -16,7 +16,16 @@ trialDataPath = fullfile(sessionPath,sessionFolder);
 
 sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, monitor, rigState);
 
-sess = process(sess, 'phys');
+%decides which mappings to use based on MACaddress of computer running
+%program.
+[~, b] = getMACaddress();
+if strcmp(b, 'F8BC128444CB') || strcmp(b, '6805CA25DFB1') %two analysis computers
+    mappings = 'phys';
+else                                %otherwise must be one of behavior computers
+    mappings = 'behavior';
+end
+
+sess = process(sess, mappings);
     
 saveSession(sess);
 

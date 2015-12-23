@@ -227,11 +227,16 @@ switch upper(spikeDetectionMethod)
 %             topRate=spikeDetectionParams.bottomTopCrossingRate(2);
 %         else %% ## handles grouping possibility
 %             if groupSize > 1
+
+                %gets threshold values for how far from mean data must be
+                %to be considered a "spike"
                 for i = 1:size(spikeDetectionParams.thresholdVolts,1)
                     loThresh(i) = spikeDetectionParams.thresholdVolts(i,1);
                     hiThresh(i) = spikeDetectionParams.thresholdVolts(i,2);
                     doThreshFromRate=false;
                 end
+                
+                
 %             else
 %                 loThresh=spikeDetectionParams.thresholdVolts(1);
 %                 hiThresh=spikeDetectionParams.thresholdVolts(2);
@@ -240,7 +245,7 @@ switch upper(spikeDetectionMethod)
 %         end
         
         N=round(min(spikeDetectionParams.samplingFreq/200,floor(size(neuralData,1)/3))); %how choose filter orders? one extreme bound: Data must have length more than 3 times filter order.
-        [b,a]=fir1(N,2*spikeDetectionParams.freqLowHi/spikeDetectionParams.samplingFreq);
+        [b,a]=fir1(N,2*spikeDetectionParams.freqLowHi/spikeDetectionParams.samplingFreq); %checks if data long enough to filter
         if 3*max(length(b),length(a))>length(neuralData)
             warning('neuralData is not long enough to filter. going to return empty stuff');
             spikes = [];
@@ -248,7 +253,7 @@ switch upper(spikeDetectionMethod)
             spikeTimestamps = [];
             return;
         end
-        filteredSignal=filtfilt(b,a,neuralData);
+        filteredSignal=filtfilt(b,a,neuralData); %filters data
         
         if doThreshFromRate
             % get threshold from desired rate of crossing
@@ -270,7 +275,7 @@ switch upper(spikeDetectionMethod)
         end
         
         spkBeforeAfterMS=[spikeDetectionParams.peakWindowMs spikeDetectionParams.waveformWindowMs-spikeDetectionParams.peakWindowMs];
-        spkSampsBeforeAfter=round(spikeDetectionParams.samplingFreq*spkBeforeAfterMS/1000);
+        spkSampsBeforeAfter=round(spikeDetectionParams.samplingFreq*spkBeforeAfterMS/1000); % ## hard coded value
         %spikeDetectionParams.spkBeforeAfterMS=[0.6 0.975];
         %spkSampsBeforeAfter=[24 39] % at 40000 like default osort:
         %rawTraceLength=64; beforePeak=24; afterPeak=39;
@@ -324,7 +329,7 @@ spikes = spikes(reorderedInds);
 
 % support for lockout
 if spikeDetectionParams.lockoutDurMs>0  % ## NOTE: changing order of channels sometimes can slightly change # of spikes blocked
- blocked=find(diff([0; spikeTimestamps])<spikeDetectionParams.lockoutDurMs/1000);
+ blocked=find(diff([0; spikeTimestamps])<spikeDetectionParams.lockoutDurMs/1000); % ## hard coded value
  spikes(blocked) = [];
  spikeTimestamps(blocked)=[];
  spikeWaveforms(blocked,:,:)=[]; % check dimentions
@@ -337,7 +342,8 @@ end
 
 end % end function
 
-
+% helper function that takes points where threshold is crossed and builds
+% spikes from data around threshold crossings.
 function [group uGroup groupPts]=extractPeakAligned(group,flip,sampRate,spkSampsBeforeAfter,filt,data, fromChannel)
 maxMSforPeakAfterThreshCrossing=.5; %this is equivalent to a lockout, because all peaks closer than this will be called one peak, so you'd miss IFI's smaller than this.
 % we should check for this by checking if we said there were multiple spikes at the same time.

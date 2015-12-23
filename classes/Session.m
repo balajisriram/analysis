@@ -47,12 +47,12 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
+        
+        % detects and sorts spikes, as well as gets event data for a
+        % session. The root method call.
         function session = process(session, mappings) 
             
             currDir = pwd; 
-%             if strcmp(currDir, 'C:\Users\Ghosh\Desktop\analysis') ~= 1
-%                 error('Running from wrong folder, must run from analysis base folder');
-%             end   
             
             % 1. get events data (##pass in correct file)
             session.eventData = eventData(session.trialDataPath, mappings);
@@ -83,6 +83,8 @@ classdef Session
             end
         end      
         
+        % takes raw neural data and goes through it in order to detect
+        % spikes.
         function session = detectSpikes(session)
             for i = 1:length(session.trodes)
                 dataPath = fullfile(session.sessionPath,session.sessionFolder); %finds corresponding .continuous file
@@ -106,6 +108,7 @@ classdef Session
             end
         end
 
+        % once spikes detected, using klustakwik algorithm to sort spikes
         function session = sortSpikes(session)
             for i = 1:length(session.trodes)
                 try
@@ -121,7 +124,9 @@ classdef Session
             end
         end
         
-        function session = inspectSpikes(session,k) % added k to start from certain trode if partially complete
+        % once spikes sorted, use inspect spikes to pull up GUI to further
+        % cluster the spikes.
+        function session = inspectSpikes(session,k)
             for i = k:length(session.trodes)
                 try
                     session.trodes(i) = session.trodes(i).inspectSpikes();
@@ -137,6 +142,7 @@ classdef Session
             end
         end
         
+        % gets smallest trial number
         function minTrial = getMinTrial(sess)
             if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
                 minTrial = Nan; 
@@ -145,6 +151,7 @@ classdef Session
             end
         end
         
+        % gets largest trial number
         function maxTrial = getMaxTrial(sess)
             if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
                 maxTrial = Nan;
@@ -181,7 +188,7 @@ classdef Session
             endTime = sess.eventData.trials(ind).stop;
         end
         
-        % gets the events for a passed in trial
+        % gets all the events for a passed in trial
         function trialEvents = getTrialEvents(sess, trial)
             [startTime, endTime] =  getTrialStartStopTime(sess, trial);
             
@@ -357,6 +364,38 @@ classdef Session
                     plot(wv');
                 end
             end
+        end
+        
+        %note, combines but does not sort after combination.
+        function sess = combineSingleUnits(sess, trodeNum, unitNum1, unitNum2) 
+        
+            if unitNum1 < 1 || unitNum2 < 1
+                error('unit number must be positive');
+            end
+            if unitNum1 == unitNum2
+                error('must refer to different units');
+            end
+            maxLen = length(sess.trodes(trodeNum).units);
+            if unitNum1 > maxLen || unitNum2 > maxLen
+                error('index out of bounds');
+            end  
+            
+            unit1 = sess.trodes(trodeNum).units(unitNum1);
+            unit2 = sess.trodes(trodeNum).units(unitNum2);
+            
+            unit1.index = [unit1.index; unit2.index];
+            unit1.timestamp = [unit1.timestamp; unit2.timestamp];
+            unit1.waveform = [unit1.waveform; unit2.waveform];
+            
+            %change order of timestamps, index, waveform of unit1 here. (or
+            %maybe keep unordered for easier seperation in the future).
+            
+            %find(diff(sess.trodes(trodeNum).units(unit1).index) < 0)
+            %this finds index of start of unit2's data.
+            
+            sess.trodes(trodeNum).units(unitNum1) = unit1;
+            sess.trodes(trodeNum).units(unitNum2) = [];
+        
         end
         
         function out = numTrodes(sess)
