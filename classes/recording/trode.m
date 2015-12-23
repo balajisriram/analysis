@@ -49,13 +49,13 @@ classdef trode
             tr.Std = [];
             warn.flag = -1;
             for i = 1:length(tr.chans)
-                a = dir(fullfile(dataPath,sprintf('100_CH%d.continuous',tr.chans(i)))); % ## make sure to process only 100_CH files
+                a = dir(fullfile(dataPath,sprintf('100_CH%d.continuous',tr.chans(i)))); %makes sure to process only 100_CH files
                 if length(a)>1
                     error('too many records');
                 else
                     [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data([dataPath,'\',a.name]);
                     if any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation)
-                        warning('bad timestamps! why?');
+                        warning('bad timestamps! why?');  %weird timestamp bug, stores in messages if bug occurs
                         warn.flag=1;
                         warn.identifier = 'trode.detectSpikes';
                         warn.message = 'bad timestamps! why?';
@@ -68,25 +68,22 @@ classdef trode
                             end
                         end
                     end
-                    tr.NeuralData = [tr.NeuralData rawData];
+                    tr.NeuralData = [tr.NeuralData rawData];  %stores raw data for now
                     tr.NeuralDataTimes = rawTimestamps;
                     tr.Mean = [tr.Mean dataMean];
                     tr.Std = [tr.Std dataStd];
                 end
             end
             
-            
-            %meanAndStd = [tr.Mean; tr.Std];
-            
-%             tr.detectParams = tr.detectParams.setupAndValidateParams(meanAndStd);
-
+            % once we have raw data we detect the spikes from it
             [tr.spikeEvents, tr.spikeWaveForms, tr.spikeTimeStamps, tr.detectParams]= ...
                 tr.detectParams.detectSpikesFromNeuralData(tr.NeuralData, tr.NeuralDataTimes);
             
-            tr.NeuralData = [];
+            tr.NeuralData = [];   %empties raw data, no need to store any longer
             tr.NeuralDataTimes = [];
         end
         
+        % does preliminary spike grouping to prepare for manual grouping.
         function tr = sortSpikes(tr)
             tr.spikeAssignedCluster = [];
             tr.spikeRankedCluster = [];
@@ -95,6 +92,7 @@ classdef trode
                 reshape(tr.spikeWaveForms,tr.numSpikes,tr.numSampsPerSpike*length(tr.chans)), tr.spikeTimeStamps);           
         end
         
+        % calls GUI on trode to further group clusters
         function newTr = inspectSpikes(tr)
             newTr = interactiveInspectGUI(tr);
         end
