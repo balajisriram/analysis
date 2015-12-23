@@ -366,6 +366,38 @@ classdef Session
             end
         end
         
+        %note, combines but does not sort after combination.
+        function sess = combineSingleUnits(sess, trodeNum, unitNum1, unitNum2) 
+        
+            if unitNum1 < 1 || unitNum2 < 1
+                error('unit number must be positive');
+            end
+            if unitNum1 == unitNum2
+                error('must refer to different units');
+            end
+            maxLen = length(sess.trodes(trodeNum).units);
+            if unitNum1 > maxLen || unitNum2 > maxLen
+                error('index out of bounds');
+            end  
+            
+            unit1 = sess.trodes(trodeNum).units(unitNum1);
+            unit2 = sess.trodes(trodeNum).units(unitNum2);
+            
+            unit1.index = [unit1.index; unit2.index];
+            unit1.timestamp = [unit1.timestamp; unit2.timestamp];
+            unit1.waveform = [unit1.waveform; unit2.waveform];
+            
+            %change order of timestamps, index, waveform of unit1 here. (or
+            %maybe keep unordered for easier seperation in the future).
+            
+            %find(diff(sess.trodes(trodeNum).units(unit1).index) < 0)
+            %this finds index of start of unit2's data.
+            
+            sess.trodes(trodeNum).units(unitNum1) = unit1;
+            sess.trodes(trodeNum).units(unitNum2) = [];
+        
+        end
+        
         function out = numTrodes(sess)
             out = length(sess.trodes);
         end
