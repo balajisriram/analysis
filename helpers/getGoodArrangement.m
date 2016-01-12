@@ -1,6 +1,6 @@
 function [xx yy numFigs] = getGoodArrangement(nFigs,params)
 if ~exist('params','var') || isempty(params)
-    params.mode = 'default'
+    params.mode = 'default';
 end
 switch params.mode
     case 'default'

@@ -359,13 +359,13 @@ classdef Session
             if isempty(tr.units)
                 error('No Single Units');
             else
-                for i = 1:length(tr.units)
-                    subplot(2,ceil(length(tr.units)/2),i);
-                    wv = [];
-                    for k = 1:4
-                        wv = [wv tr.units(i).waveform(:,:,k)];
-                    end
-                    plot(wv');
+                numUnits = length(tr.units);
+                [xx,yy] = getGoodArrangement(numUnits);
+                for i = 1:numUnits
+                    ax = subplot(xx,yy,i);
+                    ax.UserData.keyText = sprintf('t%d',trode);
+                    tr.units(i).plot(ax);
+                    text(1,1,ax.UserData.keyText,'units','normalized','horizontalalignment','right','verticalalignment','top');
                 end
             end
         end

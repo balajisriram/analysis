@@ -178,7 +178,7 @@
             end
         end
         
-        function [STA STD] = spikeTrigAverage(u, scalar, sampSize)
+        function [STA, STD] = spikeTrigAverage(u, scalar, sampSize)
             % remove spikes that cannot provide complete signal in samples
             spikes = u.index;
             spikes(spikes<sampSize+1 | spikes> length(scalar)-sampSize) = [];
@@ -193,6 +193,7 @@
         end
         
         function [mWave, stdWave] = getAvgWaveform(u)
+            warning('this does not take into consideration how many channels we include in a trode');
             mWave = mean(u.waveform,1);
             stdWave = std(u.waveform,[],1);
         end
@@ -207,6 +208,35 @@
         
         function out = getRaster(u, idxs, window)
             
+        end
+        
+        function [m,s] = getFlatWaveForm(u)
+            [m, s] = u.getAvgWaveform;
+            % remove the extra dims first
+            m = squeeze(m);
+            s = squeeze(s);
+            
+            numSamps = size(m,1);
+            numChans = size(m,2);
+            
+            m = reshape(m, numSamps*numChans,1);
+            s = reshape(s ,numSamps*numChans,1);
+        end
+        
+        %% plotting functions
+        
+        function plot(u,ax)
+            if ~exist('ax','var') || isempty(ax)
+                ax = axes;
+            end
+            
+            kT = ax.UserData.keyText;
+            [m, s] = u.getFlatWaveForm;
+
+            plot(ax,m,'k','Linewidth',3); hold on;
+            plot(ax,m+s,'--k');
+            plot(ax,m-s,'--k');
+            ax.UserData.keyText = [kT, sprintf('u%d',u.unitID)];
         end
     end
     
