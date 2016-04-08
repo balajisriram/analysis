@@ -25,7 +25,7 @@
         end
         
         function out = spikeWidth(u)
-            out = u.getPeakToTrough;
+            out = u.FWHM;
         end
         
         function out = ISI(u)
@@ -74,7 +74,7 @@
             end
         end
         
-        function spikeWidth = getPeakToTrough(u) % how long spike is in ms
+        function width = getPeakToTrough(u) % how long spike is in ms
             bestWaveform = u.getBestWaveForm;
             switch u.getSpikeDeflection
                 case 'downward'
@@ -85,11 +85,28 @@
             peakInd = find(bestWaveform(10:30)==fn(bestWaveform(10:30)))+9;
             accelAvg = diff(diff(bestWaveform(1:peakInd)));
             i = find(accelAvg==fn(accelAvg));
-            spikeWidth = (peakInd - i)/30;
+            width = (peakInd - i)/30;
         end
         
         function width = FWHM(u)
-            width = 0;
+            bestWaveform = u.getBestWaveForm;
+            switch u.getSpikeDeflection
+                case 'downward'
+                    fn = @min;
+                    parity = 1;
+                case 'upward'
+                    fn = @max;
+                    parity = -1;
+            end
+            peakInd = find(bestWaveform(10:30)==fn(bestWaveform(10:30)))+9;
+            peakVal = bestWaveform(peakInd);
+            halfPeakVal = peakVal/2;
+            whichBelow = (parity*bestWaveform)<(parity*halfPeakVal);
+            diffWhichBelow = [0 diff(whichBelow)];
+            % find largest sequence
+            Increments = find(diffWhichBelow==1);
+            Decrements = find(diffWhichBelow==-1);
+            width = max(Decrements-Increments)*1000/u.indexSampRate; % report in ms
         end
         
         function [i,peakInd,bestChan] = getSingleUnitTestData(u)
@@ -199,11 +216,11 @@
         end
         
         function out = getReport(u)
-            out.spikeWidth = u.spikeWidth();
-            out.ISI = u.ISI();
-            out.waveform = u.getAvgWaveform();
-            out.autocorr = u.xcorr(u,250,2);
-            
+            out.spikeWidth = u.spikeWidth;
+            out.ISI = u.ISI;
+            out.waveform = u.getAvgWaveform;
+            out.firingRate = u.firingRate;
+%             out.autocorr = u.xcorr(u,250,2);
         end
         
         function out = getRaster(u, idxs, window)

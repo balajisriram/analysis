@@ -135,23 +135,11 @@ classdef eventData
             
             stimStart = e.out(ind).eventTimes(stimRisingInd);
             stimStop = e.out(ind).eventTimes(~stimRisingInd);
-            
-            if length(stimStart) > length(stimStop)
-                for i = 1:length(stimStart)-1
-                    e.stim(i).trialNumber = e.messages(i*2-1).trial;
-                    e.stim(i).start = stimStart(i);
-                    e.stim(i).stop = stimStop(i);
-                end
-                i = i + 1;
+
+            for i = 1:length(stimStart)
                 e.stim(i).trialNumber = e.messages(i*2-1).trial;
                 e.stim(i).start = stimStart(i);
-                e.stim(i).stop = nan;
-            else                
-                for i = 1:length(stimStart)
-                    e.stim(i).trialNumber = e.messages(i*2-1).trial;
-                    e.stim(i).start = stimStart(i);
-                    e.stim(i).stop = stimStop(i);
-                end
+                e.stim(i).stop = stimStop(i);
             end
         end
         

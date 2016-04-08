@@ -31,11 +31,11 @@ classdef trode
     
     methods
         %% constructor
-        function tr = trode(chans, threshStdDev)
+        function tr = trode(chans)
             % ## not sure this is correct error check - assert(isnumeric(chans),'chans is not a numeric array')
             tr.chans = chans;
             % this stuff is hard coded. but thats okay.
-            tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(threshStdDev,1,length(chans)),'std');
+            tr.detectParams = filteredThreshold('StandardFiteredThresh_7__14_2015',repmat(5,1,length(chans)),'std');
             
             % set standard sorting params here
             tr.sortingParams = KlustaKwik('KlustaKwikStandard'); % ## StandardKlustaKwik           
