@@ -30,9 +30,5 @@ for i = 1:length(maxInd)
     inds(which) = 1;
     raster{i} = inds;
 end
-
-
-
-
 end
 
