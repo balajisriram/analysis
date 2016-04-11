@@ -304,6 +304,7 @@ classdef Session
             fname = saveSession(sess);
             %fname = saveSessionGUI(sess);
         end
+        
         function sess = addToEventDataGUI(sess)
             sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
             %sess.eventData = eventData();
@@ -415,8 +416,14 @@ classdef Session
         
         function allUnits = collateUnits(sess)
             numUnits = sess.numUnits();
-            allUnits(numUnits) = singleUnit(NaN,NaN,NaN,NaN,NaN,NaN);
-            error('does not run currently');
+            %allUnits(numUnits) = singleUnit(NaN,NaN,NaN,NaN,NaN,NaN);
+            k = 0;
+            for i = 1:length(sess.trodes)
+                for j = 1:sess.trodes(i).numUnits
+                    allUnits(k+1) = sess.trodes(i).units(j);
+                    k = k+1;
+                end
+            end
         end
         
         function plotWaveforms(sess)
@@ -486,6 +493,7 @@ classdef Session
             end
         end
         
+        %% rasters
         function raster = trialRaster(sess, trials, unit, range)
             % trialRaster - takes a list of trials, a single unit, and a range, and
             %               returns a raster indicating the how many times the unit
@@ -557,7 +565,7 @@ classdef Session
             %                       in which they are contained
             %
             
-            %% Current subsets implemented %%
+            % Current subsets implemented %%
             %
             % Orientation = takes all trials with stim length of ~100ms and creates
             %               raster for every single unit of the session. Then plots to
@@ -632,6 +640,56 @@ classdef Session
         function sess = zeroNoise(sess)
             for i = 1:length(sess.trodes)
                 sess.trodes(i).spikeWaveForms(sess.trodes(i).spikeAssignedCluster==1,:,:) = 0;
+            end
+        end
+        
+        %% units      
+        function spikeShapeCorr(sess)
+            numUnits = sess.numUnits;
+            allUnits = sess.collateUnits;
+            corrs = nan(numUnits,numUnits);
+            for i = 1:numUnits
+                disp(i);pause(1)
+                for j = i+1:numUnits
+                    wf1 = allUnits(i).getFlatWaveForm;
+                    wf2 = allUnits(j).getFlatWaveForm;
+                    try
+                    r = corrcoef(wf1,wf2);
+                    catch ex
+                        switch ex.identifier
+                            case 'MATLAB:corrcoef:XYmismatch'
+                                % happens when we have different number of
+                                % channels in each trode
+                                
+                                % pass
+                            otherwise
+                                keyboard
+                        end
+                    end
+                    corrs(i,j) = r(1,2);
+                end
+            end
+            
+            figure;
+            imagesc(corrs);
+            axis equal;
+            colormap grey;
+            colorbar
+        end
+        
+        function fr = firingRates(sess)
+            allUnits = sess.collateUnits;
+            fr(sess.numUnits) = nan;
+            for i = 1:length(allUnits)
+                fr(i) = allUnits(i).firingRate;
+            end
+        end
+        
+        function sw = spikeWidths(sess)
+            allUnits = sess.collateUnits;
+            sw(sess.numUnits) = nan;
+            for i = 1:sess.numUnits
+                sw(i) = allUnits(i).spikeWidth;
             end
         end
     end

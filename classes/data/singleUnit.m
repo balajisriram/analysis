@@ -23,11 +23,7 @@
         function avgFiringRate = firingRate(u) % # of spikes per second.
             avgFiringRate = length(u.timestamp)/max(u.timestamp);
         end
-        
-        function out = spikeWidth(u)
-            out = u.FWHM;
-        end
-        
+
         function out = ISI(u)
             out = diff(u.timestamp);
         end
@@ -74,6 +70,12 @@
             end
         end
         
+        %% spikeWidth methods
+        function out = spikeWidth(u)
+            test = false;
+            out = u.FWAtZero(test);
+        end
+        
         function width = getPeakToTrough(u) % how long spike is in ms
             bestWaveform = u.getBestWaveForm;
             switch u.getSpikeDeflection
@@ -88,7 +90,10 @@
             width = (peakInd - i)/30;
         end
         
-        function width = FWHM(u)
+        function width = FWHM(u,test)
+            if ~exist('test','var')
+                test = false;
+            end
             bestWaveform = u.getBestWaveForm;
             switch u.getSpikeDeflection
                 case 'downward'
@@ -101,12 +106,86 @@
             peakInd = find(bestWaveform(10:30)==fn(bestWaveform(10:30)))+9;
             peakVal = bestWaveform(peakInd);
             halfPeakVal = peakVal/2;
-            whichBelow = (parity*bestWaveform)<(parity*halfPeakVal);
+            
+            % use splines to get better fits
+            times = (1:length(bestWaveform))*1000/u.indexSampRate;
+            splinedTimes = linspace(min(times),max(times),1000);
+            splinedWF = spline(times,bestWaveform,splinedTimes);
+            
+            whichBelow = (parity*splinedWF)<(parity*halfPeakVal);
             diffWhichBelow = [0 diff(whichBelow)];
             % find largest sequence
             Increments = find(diffWhichBelow==1);
             Decrements = find(diffWhichBelow==-1);
-            width = max(Decrements-Increments)*1000/u.indexSampRate; % report in ms
+            try
+                tBelowStart = splinedTimes(Increments);
+                tBelowStop = splinedTimes(Decrements);
+                width = tBelowStop - tBelowStart;
+            catch ex
+                % if Increments and Decrements are of differentSizes???
+                keyboard
+            end
+            
+            if test
+                figure;
+                plot(splinedTimes,splinedWF,'k');hold on;
+                plot(tBelowStart,halfPeakVal,'rx');
+                plot(tBelowStop,halfPeakVal,'rx');
+            end
+        end
+        
+        function width = FWAtZero(u,test)
+            if ~exist('test','var')
+                test = false;
+            end
+            bestWaveform = u.getBestWaveForm;
+            switch u.getSpikeDeflection
+                case 'downward'
+                    fn = @min;
+                    parity = 1;
+                case 'upward'
+                    fn = @max;
+                    parity = -1;
+            end
+            peakInd = find(bestWaveform(10:30)==fn(bestWaveform(10:30)))+9;
+            peakVal = bestWaveform(peakInd);
+            
+            % use splines to get better fits
+            times = (1:length(bestWaveform))*1000/u.indexSampRate;
+            splinedTimes = linspace(min(times),max(times),1000);
+            splinedWF = spline(times,bestWaveform,splinedTimes);
+            absDiff = abs(splinedWF-peakVal);
+            splinedPeakTime = splinedTimes(absDiff==min(absDiff));
+            
+            whichBelow = (parity*splinedWF)<0;
+            diffWhichBelow = [0 diff(whichBelow)];
+
+            try
+                tBelowStart = splinedTimes(diffWhichBelow==1);
+                tBelowStop = splinedTimes(diffWhichBelow==-1);
+                
+                tBelowStart = max(tBelowStart(tBelowStart<splinedPeakTime));
+                tBelowStop = min(tBelowStop(tBelowStop>splinedPeakTime));
+                width = tBelowStop - tBelowStart;
+                
+                if isempty(width)
+                    width = nan;
+                end
+            catch ex
+                % if Increments and Decrements are of differentSizes???
+                figure;
+                plot(splinedTimes,splinedWF,'k');hold on;
+                plot(tBelowStart,0,'rx');
+                plot(tBelowStop,0,'gx');
+                keyboard
+            end
+            
+            if test
+                figure;
+                plot(splinedTimes,splinedWF,'k');hold on;
+                plot(tBelowStart,0,'rx');
+                plot(tBelowStop,0,'rx');
+            end
         end
         
         function [i,peakInd,bestChan] = getSingleUnitTestData(u)
@@ -247,13 +326,13 @@
                 ax = axes;
             end
             
-            kT = ax.UserData.keyText;
+            %kT = ax.UserData.keyText;
             [m, s] = u.getFlatWaveForm;
 
             plot(ax,m,'k','Linewidth',3); hold on;
             plot(ax,m+s,'--k');
             plot(ax,m-s,'--k');
-            ax.UserData.keyText = [kT, sprintf('u%d',u.unitID)];
+            %ax.UserData.keyText = [kT, sprintf('u%d',u.unitID)];
         end
     end
     

@@ -168,6 +168,7 @@ classdef trode
                 end
                 
             end
+        end
 
     end
 end
