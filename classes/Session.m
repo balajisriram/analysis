@@ -22,7 +22,7 @@ classdef Session
         refreshRate = NaN;
         samplingFreq = NaN;
     end
-    methods
+    methods % constructors and basic analysis
         function sess = Session(subject,sessionPath,sessionFolder,trialDataPath, etrode, mon, rigState)
             assert(ischar(subject),'subject input is not a character')
             sess.subject = subject;
@@ -50,7 +50,6 @@ classdef Session
             sess.sessionID = sprintf('%s_%s',upper(subject),datestr(sess.timeStamp,30));
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
-        
         
         % detects and sorts spikes, as well as gets event data for a
         % session. The root method call.
@@ -145,7 +144,8 @@ classdef Session
             end
             session.IsInspected = true;
         end
-        
+    end
+    methods % collect important facts about session
         % gets smallest trial number
         function minTrial = getMinTrial(sess)
             if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
@@ -322,8 +322,9 @@ classdef Session
             fileName = [sess.sessionFolder,'_',int2str(now),'_Inspected.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end
-        
-        %% Manipulating and plotting data in the session
+    end
+    methods %manipulate data within trodes
+        % Manipulating and plotting data in the session
         function [corrList, lag] = getXCorr(sess, unitIdent, lag, bin, plotOn)
             if ~exist('plotOn','var') || isempty(plotOn)
                 plotOn = false;
@@ -458,42 +459,6 @@ classdef Session
         function raster = getRaster(sess, what, wrt)
         end
         
-        %% Manipulating the history
-        function sess = flushHistory(sess)
-            sess.history = {};
-        end
-        
-        function displayHistory(sess)
-            if ~isempty(sess.history)
-                fprintf('#\tTYPE\tIDENT\t\t\t\t\t\tMESSAGE\n')
-            end
-            fprintf('%s\n',sess.history{1});
-            for i = 2:length(sess.history)
-                if isstruct(sess.history{i}{3})
-                    fprintf('%d.\t%s\t%s\t\t\t\t\t\tERROR\n',i,sess.history{i}{1},sess.history{i}{2});
-                else
-                    try
-                        fprintf('%d.\t%s\t%s\t\t\t\t\t\t%s\n',i,sess.history{i}{1},sess.history{i}{2},sess.history{i}{3});
-                    catch ex
-                        fprintf('%d.\t%s\n',i,sess.history{i});
-                    end
-                end
-            end
-        end
-        
-        function sess = addToHistory(sess,type,details)
-            switch lower(type)
-                case {'err','error'}
-                    % details is exception object
-                    sess.history{end+1} = {'Err.',details.identifier,details.message,details.stack};
-                case 'completed'
-                    sess.history{end+1} = {'Comp.',details.identifier,details.message};
-                case 'warning'
-                    sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
-            end
-        end
-        
-        %% rasters
         function raster = trialRaster(sess, trials, unit, range)
             % trialRaster - takes a list of trials, a single unit, and a range, and
             %               returns a raster indicating the how many times the unit
@@ -636,14 +601,13 @@ classdef Session
             
         end
         
-
         function sess = zeroNoise(sess)
             for i = 1:length(sess.trodes)
                 sess.trodes(i).spikeWaveForms(sess.trodes(i).spikeAssignedCluster==1,:,:) = 0;
             end
         end
         
-        %% units      
+        % units
         function spikeShapeCorr(sess)
             numUnits = sess.numUnits;
             allUnits = sess.collateUnits;
@@ -654,7 +618,7 @@ classdef Session
                     wf1 = allUnits(i).getFlatWaveForm;
                     wf2 = allUnits(j).getFlatWaveForm;
                     try
-                    r = corrcoef(wf1,wf2);
+                        r = corrcoef(wf1,wf2);
                     catch ex
                         switch ex.identifier
                             case 'MATLAB:corrcoef:XYmismatch'
@@ -728,6 +692,48 @@ classdef Session
                 end
             end
         end
+        
+        function sess = collectTrialRecords(sess)
+            
+        end
+    end
+    methods % Manipulating the history
+        
+        function sess = flushHistory(sess)
+            sess.history = {};
+        end
+        
+        function displayHistory(sess)
+            if ~isempty(sess.history)
+                fprintf('#\tTYPE\tIDENT\t\t\t\t\t\tMESSAGE\n')
+            end
+            fprintf('%s\n',sess.history{1});
+            for i = 2:length(sess.history)
+                if isstruct(sess.history{i}{3})
+                    fprintf('%d.\t%s\t%s\t\t\t\t\t\tERROR\n',i,sess.history{i}{1},sess.history{i}{2});
+                else
+                    try
+                        fprintf('%d.\t%s\t%s\t\t\t\t\t\t%s\n',i,sess.history{i}{1},sess.history{i}{2},sess.history{i}{3});
+                    catch ex
+                        fprintf('%d.\t%s\n',i,sess.history{i});
+                    end
+                end
+            end
+        end
+        
+        function sess = addToHistory(sess,type,details)
+            switch lower(type)
+                case {'err','error'}
+                    % details is exception object
+                    sess.history{end+1} = {'Err.',details.identifier,details.message,details.stack};
+                case 'completed'
+                    sess.history{end+1} = {'Comp.',details.identifier,details.message};
+                case 'warning'
+                    sess.history{end+1} = {'Warning.', details.identifier,details.message,details.data};
+            end
+        end
+        
+
     end
     
 end
