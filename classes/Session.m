@@ -692,6 +692,21 @@ classdef Session
                 sw(i) = allUnits(i).spikeWidth;
             end
         end
+        
+        function xcorrs = calcXcorrs(sess)
+            
+            allUnits = sess.collateUnits;
+            numUnits = sess.numUnits;
+            xcorrs = nan(numUnits,numUnits,501);
+            sigs = false(numUnits,numUnits,501);
+            for i = 1:sess.numUnits
+                for j = i+1:sess.numUnits
+                    [xCorr,~,~,~,sig] = allUnits(i).xcorr(allUnits(j));
+                    xcorrs(i,j,:) = xCorr;
+                    sigs(i,j,:) = sig;
+                end
+            end
+        end
     end
     
 end

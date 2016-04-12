@@ -216,7 +216,7 @@
             [R,P] = corrcoef(binned,binned1);
         end
         
-        function [corr, shuffleM ,shuffleS, lag] = xcorr(u, u1, maxLag, binSize)
+        function [corr, shuffleM ,shuffleS, lag, sig] = xcorr(u, u1, maxLag, binSize)
             if ~exist('maxLag','var') || isempty(maxLag)
                 maxLag = 250; %in ms
             end
@@ -236,27 +236,40 @@
             corrUnit = binRaster(corrUnit, binSize);
             
             [corr, lag] = xcorr(singUnit, corrUnit, maxLag);
-            
-            nShuffle = 10;
-            corrShuffle = nan(nShuffle,length(corr));
-            for i = 1:nShuffle
-                clear shufUnit shufOther
-                tic
-                try
-                    shuffleOrder = randperm(length(singUnit));
-                    shufUnit = singUnit(uint32(shuffleOrder));
-                    shuffleOrder = randperm(length(corrUnit));
-                    shufOther = corrUnit(uint32(shuffleOrder));
-                catch ex
-                    beep
-                    getReport(ex)
-                    keyboard
+            doShuffle = true;
+            if doShuffle
+                
+                nShuffle = 10;
+                corrShuffle = nan(nShuffle,length(corr));
+                for i = 1:nShuffle
+                    clear shufUnit shufOther
+                    tic
+                    try
+                        shuffleOrder = randperm(length(singUnit));
+                        shufUnit = singUnit(uint32(shuffleOrder));
+                        shuffleOrder = randperm(length(corrUnit));
+                        shufOther = corrUnit(uint32(shuffleOrder));
+                    catch ex
+                        beep
+                        getReport(ex)
+                        keyboard
+                    end
+                    corrShuffle(i,:) = xcorr(shufUnit,shufOther,maxLag);
+                    fprintf('xcorr %d of %d took %2.2f s\n',i,nShuffle,toc);
                 end
-                corrShuffle(i,:) = xcorr(shufUnit,shufOther,maxLag);
-                fprintf('xcorr %d of %d took %2.2f s\n',i,nShuffle,toc);
+                shuffleM = mean(corrShuffle,1);
+                shuffleS = std(corrShuffle,[],1);
+                
+                if any(abs(corr)>abs(shuffleM+2*shuffleS))
+                    sig = true
+                else
+                    sig = false;
+                end
+            else
+                shuffleM = [];
+                shuffleS = [];
+                sig = nan;
             end
-            shuffleM = mean(corrShuffle,1);
-            shuffleS = std(corrShuffle,[],1);
         end
         
         function [corrList, lag] = spikeCorrAll(u, sess, maxLag, binSize)
