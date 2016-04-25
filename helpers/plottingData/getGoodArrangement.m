@@ -1,4 +1,4 @@
-function [xx yy numFigs] = getGoodArrangement(nFigs,params)
+function [xx, yy, numFigs] = getGoodArrangement(nFigs,params)
 if ~exist('params','var') || isempty(params)
     params.mode = 'default';
 end
@@ -9,11 +9,11 @@ switch params.mode
         numFigs = 1;
     case 'maxAxesPerFig'
         if nFigs>params.maxAxesPerFig
-            [xx yy] = getGoodArrangement(params.maxAxesPerFig);
+            [xx, yy] = getGoodArrangement(params.maxAxesPerFig);
             numFigs = ceil(nFigs/params.maxAxesPerFig);
         else
             params.mode = 'default';
-            [xx yy] = getGoodArrangement(nFigs,params);
+            [xx, yy] = getGoodArrangement(nFigs,params);
             numFigs = ceil(nFigs/params.maxAxesPerFig);
         end
     case 'onlyVertical'

@@ -8,6 +8,7 @@ classdef Session
         monitor   % all 3 of these object in the 'hardware' folder
         rig
         trials
+        trialDetails
         
         sessionPath   
         sessionFolder  
@@ -144,10 +145,99 @@ classdef Session
             end
             session.IsInspected = true;
         end
+        
+        function sess = populateTrialDetails(sess, stimRecordsFolder)
+            % getTrialDetails - Gets more in depth trial information stored in the
+            %                   stim records folder in all data folders.
+            %                   Stored in sess.eventData.
+            %
+            % parameters - sess: session to be added to
+            %            - stimRecordedFolder: folder where stim data is held.
+            %
+            % return - sess: session should now contain correct stim data.
+            
+            % first identify the trials in sess. needs to be cleaned
+            if ~isempty(sess.trialDetails)
+                fprintf('PREV.DONE\t')
+                return
+            end
+            trialsUnclean = real([sess.eventData.trials.trialNumber]);
+            trials = nan(size(trialsUnclean));
+            which = diff([trialsUnclean(1)-1 trialsUnclean])~=1;
+            trials(~which) = trialsUnclean(~which);
+            if (length(trialsUnclean(which))/length(trialsUnclean)>0.01)
+                fprintf('fracUnclean = %2.2f\t',length(trialsUnclean(which))/length(trialsUnclean));
+                %warning('Session:populateTrialDetails:problematicData','too many failed trials - why is that?');
+            end
+            sess.trials = trials;
+            
+            % now find the data in stimRecordFolder and fill'er up
+            fPath = [stimRecordsFolder,'\stim*'];
+            
+            for i = 1:length(sess.trials)
+                if isnan(sess.trials(i))
+                    continue
+                end
+                stimRecName = sprintf('stimRecords_%d-*.mat',sess.trials(i));
+                files = dir(fullfile(stimRecordsFolder,stimRecName));
+                if length(files)>1 
+                    error('Session:populateTrialDetails:problematicData','too many stim records trial number %d',sess.trials(i));
+                elseif length(files)<1
+                    fprintf('\nno record for tr: %d\t',sess.trials(i));
+                    continue
+                end
+                temp = load(fullfile(stimRecordsFolder,files.name));
+                sess.trialDetails(i).trialNum = temp.trialNum;
+                sess.trialDetails(i).refreshRate = temp.refreshRate;
+                sess.trialDetails(i).trialStartTime = datetime(temp.trialStartTime);
+                sess.trialDetails(i).stepName = temp.stepName;
+                sess.trialDetails(i).stimManagerClass = temp.stimManagerClass;
+                switch sess.trialDetails(i).stimManagerClass
+                    case 'afcGratings'
+                        sess.trialDetails(i).stimDetails.pixPerCycs        = temp.stimulusDetails.pixPerCycs; 
+                        sess.trialDetails(i).stimDetails.driftfrequencies  = temp.stimulusDetails.driftfrequencies; 
+                        sess.trialDetails(i).stimDetails.orientations      = temp.stimulusDetails.orientations; 
+                        sess.trialDetails(i).stimDetails.phases            = temp.stimulusDetails.phases; 
+                        sess.trialDetails(i).stimDetails.contrasts         = temp.stimulusDetails.contrasts; 
+                        sess.trialDetails(i).stimDetails.maxDuration       = temp.stimulusDetails.maxDuration; 
+                        sess.trialDetails(i).stimDetails.radii             = temp.stimulusDetails.radii; 
+                        sess.trialDetails(i).stimDetails.LEDON             = temp.stimulusDetails.LEDON; 
+                    otherwise
+                        keyboard
+                end
+            end 
+        end
+        
+        %to add more information to eventData class
+        function sess = addToEventData(sess)
+            sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
+            %sess.eventData = eventData();
+            
+            fname = saveSession(sess);
+            %fname = saveSessionGUI(sess);
+        end
+        
+        function sess = addToEventDataGUI(sess)
+            sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
+            %sess.eventData = eventData();
+            
+            %fname = saveSession(sess);
+            fname = saveSessionGUI(sess);
+        end
+        
+        function fileName = saveSession(sess)  % save session as a struct to mat file
+            fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
+            save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
+        end
+        
+        function fileName = saveSessionGUI(sess)  % save session as a struct to mat file
+            fileName = [sess.sessionFolder,'_',int2str(now),'_Inspected.mat'];
+            save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
+        end        
     end
     methods % collect important facts about session
         % gets smallest trial number
-        function minTrial = getMinTrial(sess)
+        function minTrial = minTrialNum(sess)
             if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
                 minTrial = Nan; 
             else
@@ -156,7 +246,7 @@ classdef Session
         end
         
         % gets largest trial number
-        function maxTrial = getMaxTrial(sess)
+        function maxTrial = maxTrialNum(sess)
             if length(sess.eventData.messages) == 1 % cases where we dont have Messages Events
                 maxTrial = Nan;
             else
@@ -175,10 +265,10 @@ classdef Session
         
         % gets start and end time for a trial
         function [startTime, endTime] =  getTrialStartStopTime(sess, trial)
-            if trial > getMaxTrial(sess) || trial < getMinTrial(sess)
+            if trial > maxTrialNum(sess) || trial < minTrialNum(sess)
                 error('ERROR: trial out of range of session');
             end
-            ind = (trial - getMinTrial(sess)) + 1; %% Assumes that trials increase 1 at a time.
+            ind = (trial - minTrialNum(sess)) + 1; %% Assumes that trials increase 1 at a time.
             
             if sess.eventData.trials(ind).trialNumber ~= trial
                 warning('Possibly not displaying start/stop of correct trial');
@@ -252,8 +342,8 @@ classdef Session
         
         % gets the duration of frame and stim for all trials of a session.
         function [trialNumber, frameDuration, stimDuration] = getFrameStimDuration(sess)
-            maxTrial = getMaxTrial(sess);  
-            minTrial = getMinTrial(sess);
+            maxTrial = maxTrialNum(sess);  
+            minTrial = minTrialNum(sess);
             
             numTrials = maxTrial-minTrial;
             frameStart = zeros(1, numTrials);
@@ -296,34 +386,11 @@ classdef Session
             end
         end
         
-        %to add more information to eventData class
-        function sess = addToEventData(sess)
-            sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
-            %sess.eventData = eventData();
-            
-            fname = saveSession(sess);
-            %fname = saveSessionGUI(sess);
-        end
-        
-        function sess = addToEventDataGUI(sess)
-            sess.eventData = eventData(['D:\FullRecordedData\',sess.sessionFolder]);
-            %sess.eventData = eventData();
-            
-            %fname = saveSession(sess);
-            fname = saveSessionGUI(sess);
-        end
-        
-        function fileName = saveSession(sess)  % save session as a struct to mat file
-            fileName = [sess.sessionFolder,'_',int2str(now),'.mat'];
-            save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
-        end
-        
-        function fileName = saveSessionGUI(sess)  % save session as a struct to mat file
-            fileName = [sess.sessionFolder,'_',int2str(now),'_Inspected.mat'];
-            save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
+        function out = numTrials(sess)
+            out = sum(~isnan(sess.trials));
         end
     end
-    methods %manipulate data within trodes
+    methods % manipulate data within trodes
         % Manipulating and plotting data in the session
         function [corrList, lag] = getXCorr(sess, unitIdent, lag, bin, plotOn)
             if ~exist('plotOn','var') || isempty(plotOn)
@@ -425,6 +492,10 @@ classdef Session
                     k = k+1;
                 end
             end
+            
+            if ~exist('allUnits','var')
+                allUnits = [];
+            end
         end
         
         function plotWaveforms(sess)
@@ -493,28 +564,110 @@ classdef Session
             end
         end
         
-        function sess = getTrialDetails(sess, stimRecordsFolder)
-            % getTrialDetails - Gets more in depth trial information stored in the
-            %                   stim records folder in all data folders.
-            %                   Stored in sess.eventData.
-            %
-            % parameters - sess: session to be added to
-            %            - stimRecordedFolder: folder where stim data is held.
-            %
-            % return - sess: session should now contain correct stim data.
+        function tuning = getORTuning(sess,unit)
+            % need to get the data for 'gratings'
+            whichStep = strcmp({sess.trialDetails.stepName},'gratings');
             
-            fPath = [stimRecordsFolder,'\stim*'];
-            files = dir(fPath);
-            for i = 1:length(files)
-                load([stimRecordsFolder,'\',files(i).name]);
-                sess.eventData.trialData(trialNum).trialNum = trialNum;
-                sess.eventData.trialData(trialNum).refreshRate = refreshRate;
-                sess.eventData.trialData(trialNum).stepName = stepName;
-                sess.eventData.trialData(trialNum).stimManagerClass = stimManagerClass;
-                sess.eventData.trialData(trialNum).stimulusDetails = stimulusDetails;
+            trNum = [sess.trialDetails.trialNum];trNumThatStep = trNum(whichStep);
+            tD = sess.trialDetails; sD = [tD.stimDetails];
+
+            orientations = [sD.orientations];
+            orsThatStep = orientations(whichStep);
+            ORs = unique(orsThatStep);
+            
+            tuning.ors = ORs;
+            tuning.trials = cell(size(ORs));
+            for i = 1:length(ORs)
+                whichThatOR = orsThatStep==ORs(i);
+                tuning.trials{i} = trNumThatStep(whichThatOR);
+            end
+            
+            tuning.spiking = cell(size(ORs));
+            timerange = [-0.1 1];
+            for i = 1:length(ORs)
+                tuning.spiking{i} = unit.getRaster(sess.getStimStartTime(tuning.trials{i}),timerange);
+            end
+            
+            for i = 1:length(ORs)
+                tuning.rasters(i) = Raster(tuning.trials{i},tuning.spiking{i},timerange);
+                tuning.frs(i) = tuning.rasters(i).getFiringRate;
+            end
+            
+            plotRaster = false;
+            
+            if plotRaster
+                [xx,yy] = getGoodArrangement(length(ORs));
+                figure;
+                for i = 1:length(ORs)
+                    ax = subplot(xx,yy,i);
+                    tuning.rasters(i).plot(ax);
+                    title(sprintf('%2.1f',rad2deg(ORs(i))));
+                    ax.XLim = tuning.rasters(i).timerange;
+                end
             end
             
             
+        end
+        
+        function plotORTuning(sess,unit,ax)
+            if ~exist('ax','var') || isempty(ax)
+                ax = axes;
+            end
+            tuning = sess.getORTuning(unit);
+            
+            axes(ax);
+            ors = tuning.ors;
+            m = fliplr([tuning.frs.m]);
+            sem = fliplr([tuning.frs.sem]);
+            p = polar(ors+pi/2,m); hold on;
+            p.LineWidth = 3;
+            for i = 1:length(ors)
+                polar([ors(i)+pi/2 ors(i)+pi/2],[m(i)+sem(i),m(i)-sem(i)],'b');
+            end
+            %ax.YLim = [0 ax.YLim(2)];
+            
+        end
+        
+        function f = plotAllORTuning(sess)
+            numUnits = sess.numUnits;
+            params.mode = 'maxAxesPerFig';
+            params.maxAxesPerFig = 30;
+            [xx,yy] = getGoodArrangement(numUnits,params);
+            allUnits = sess.collateUnits;
+            currFig = 1;
+            f = [];
+            for i = 1:numUnits
+                if currFig ==1
+                    f(end+1) = figure;
+                end
+                ax = subplot(xx,yy,currFig);
+                sess.plotORTuning(allUnits(i),ax);
+                currFig = currFig+1;
+                if currFig>params.maxAxesPerFig
+                    currFig = 1;
+                end
+            end
+        end
+        
+        function out = getAllORTuning(sess)
+            numUnits = sess.numUnits;
+            allUnits = sess.collateUnits;
+            out = cell(1,numUnits);
+            for i = 1:numUnits
+                out{i}= sess.getORTuning(allUnits(i)); 
+            end
+        end
+        
+        function out = getStimStartTime(sess,trials)
+            trialsInEventDataStim = [sess.eventData.stim.trialNumber];
+            startTimeInEventDataStim = [sess.eventData.stim.stop]; %actually stop because RR fucked up hmmmm
+            out = nan(size(trials));
+            for i = 1:length(trials)
+                startTime = startTimeInEventDataStim(trialsInEventDataStim==trials(i));
+                if ~isempty(startTime)
+                    out(i) = startTime;
+                end
+            end
         end
         
         function raster = subsetTrialRasterAllUnits(sess, unitNum, range, subset)
@@ -693,7 +846,8 @@ classdef Session
             end
         end
         
-        function sess = collectTrialRecords(sess)
+        function out = getCovariance(sess,dT)
+            
             
         end
     end
@@ -736,4 +890,114 @@ classdef Session
 
     end
     
+    methods % sanity checks
+        function summarizeTrialDetails(sess)
+            if isempty(sess.trialDetails)
+                fprintf('DETAILS UNAVAILABLE...EXITING\n')
+                return
+            end
+            
+            fprintf('NUM TRIALS: %d\n',sess.numTrials);
+            fprintf('MIN TRIAL NUM: %d\n',sess.minTrialNum);
+            fprintf('MAX TRIAL NUM: %d\n\n',sess.maxTrialNum);
+            
+            tD = sess.trialDetails; 
+            
+            fprintf('AVAILABLE STIM CLASSES\n');
+            fprintf('----------------------\n');
+            availClasses = unique({tD.stimManagerClass});
+            for i = 1:length(availClasses)
+                fprintf('%s\n',availClasses{i});
+            end
+            
+            fprintf('\nAVAILABLE STEPS\n');
+            fprintf('---------------\n');
+            availSteps = unique({tD.stepName});
+            for i = 1:length(availSteps)
+                which = ismember({tD.stepName},availSteps{i});
+                fprintf('\n%s : %d trials\n',availSteps{i},sum(which));
+                
+                % find the things that got varied in these trials
+                sDThis = [tD(which).stimDetails];
+                
+                % loop through stuff
+                variedPPC = length(unique([sDThis.pixPerCycs]))>1;
+                variedFreq = length(unique([sDThis.driftfrequencies]))>1;
+                variedCtr = length(unique([sDThis.contrasts]))>1;
+                variedOr = length(unique([sDThis.orientations]))>2;
+                variedDur = length(unique([sDThis.maxDuration]))>1;
+                
+                variedStuff = {'ppc','freq','ctr','or','dur'};
+                variedHere = variedStuff([variedPPC,variedFreq,variedCtr,variedOr,variedDur]);
+                fprintf('Varied: ');
+                for j = 1:length(variedHere)
+                    fprintf('%s ',variedHere{j});
+                    if j ~=length(variedHere)
+                        fprintf('X ');
+                    else
+                        fprintf('\n');
+                    end
+                end
+                
+                % now make some statements about the number of trials
+                switch availSteps{i}
+                    case 'gratings'
+                        ORs = unique([sDThis.orientations]);
+                        numOrs = length(ORs);
+                        fprintf('Number of Orientations: %d\n',numOrs);
+                        for j = 1:numOrs
+                            numTrialsThatOR = sum([sDThis.orientations]==ORs(j));
+                            fprintf('%2.0f : %d trials\n',rad2deg(ORs(j)),numTrialsThatOR);
+                        end
+                        
+                    case 'gratings_LED'
+                        ors = [sDThis.orientations];ORs = unique(ors);
+                        ctrs = [sDThis.contrasts];Ctrs = unique(ctrs);
+                        durs = [sDThis.maxDuration]; Durs = unique(durs);
+                        
+                        fprintf('FOR LEFT OR\n');
+                        numTrialsLeft = nan(length(Ctrs),length(Durs));
+                        fprintf('CONTRASTS');disp(Ctrs);
+                        fprintf('DURATIONS');disp(Durs/60); % assuming 60Hz
+                        
+                        for j = 1:length(Ctrs)
+                            for k = 1:length(Durs)
+                                numTrialsLeft(j,k) = sum(ors==min(ors) & ctrs==Ctrs(j) & durs==Durs(k));
+                            end
+                        end
+                        disp(numTrialsLeft);
+                        
+                        fprintf('FOR RIGHT OR\n');
+                        numTrialsRight = nan(length(Ctrs),length(Durs));
+                        fprintf('CONTRASTS');disp(Ctrs);
+                        fprintf('DURATIONS');disp(Durs/60); % assuming 60Hz
+                        
+                        for j = 1:length(Ctrs)
+                            for k = 1:length(Durs)
+                                numTrialsRight(j,k) = sum(ors==max(ors) & ctrs==Ctrs(j) & durs==Durs(k));
+                            end
+                        end
+                        disp(numTrialsRight);
+                        
+                    otherwise
+                        keyboard
+                end
+                
+            end
+            
+            
+            
+        end
+        function verifyAllTrialsHaveStimEvents(sess)
+            %trialsInDetails = [sess.trialDetails.trialNum];
+            trialsInEventDataTrials = [sess.eventData.trials.trialNumber];
+            trialsInEventDataStim = [sess.eventData.stim.trialNumber];
+            diffTr = setdiff(trialsInEventDataTrials,trialsInEventDataStim);
+            if isempty(diffTr) || length(diffTr)==1
+                fprintf('Seems OK\n');
+            else
+                fprintf('Found an issue\n');
+            end
+        end
+    end
 end

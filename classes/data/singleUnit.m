@@ -315,8 +315,15 @@
 %             out.autocorr = u.xcorr(u,250,2);
         end
         
-        function out = getRaster(u, idxs, window)
-            
+        function out = getRaster(u, times, window)
+            if ~exist('window','var') || isempty(window)
+                window = [-Inf,Inf];
+            end
+            out = cell(size(times));
+            for i = 1:length(times)
+                temp = u.timestamp-times(i);
+                out{i} = temp(temp>window(1) & temp<window(2));
+            end
         end
         
         function [m,s] = getFlatWaveForm(u)
