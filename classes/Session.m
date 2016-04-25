@@ -693,17 +693,38 @@ classdef Session
             end
         end
         
-        function xcorrs = calcXcorrs(sess)
+        function out = calcXcorrs(sess)
             
             allUnits = sess.collateUnits;
             numUnits = sess.numUnits;
-            xcorrs = nan(numUnits,numUnits,501);
-            sigs = false(numUnits,numUnits,501);
+            out.xcorrs = nan(numUnits,numUnits,501);
+            out.shuffM = nan(numUnits,numUnits,501);
+            out.shuffS = nan(numUnits,numUnits,501);
+            out.sigs = false(numUnits,numUnits);
+            totalCrossCorrs = sess.numUnits*sess.numUnits/2;
+            h = waitbar(0,sprintf('CrossCorr 0 of %d',totalCrossCorrs));
+            k = 0;
             for i = 1:sess.numUnits
                 for j = i+1:sess.numUnits
-                    [xCorr,~,~,~,sig] = allUnits(i).xcorr(allUnits(j));
-                    xcorrs(i,j,:) = xCorr;
-                    sigs(i,j,:) = sig;
+                    [xCorr,shuffM,shuffS,~,sig] = allUnits(i).xcorr(allUnits(j));
+                    out.xcorrs(i,j,:) = xCorr;
+                    out.shuffM(i,j,:) = shuffM;
+                    out.shuffS(i,j,:) = shuffS;
+                    out.sigs(i,j) = sig;
+                    k = k+1;
+                    waitbar(min(k,totalCrossCorrs)/totalCrossCorrs,h,sprintf('CrossCorr %d of %d',k,totalCrossCorrs));
+                end
+            end
+            close(h);
+        end
+        
+        function out = getSpikeCorrelation(sess,resolution)% resolution in ms
+            allUnits = sess.collateUnits;
+            out = nan(sess.numUnits,sess.numUnits);
+            for i = 1:sess.numUnits
+                for j = i+1:sess.numUnits
+                    r = allUnits(i).calcCorr(allUnits(j),resolution);
+                    out(i,j) = r(1,2);
                 end
             end
         end

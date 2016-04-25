@@ -255,13 +255,13 @@
                         keyboard
                     end
                     corrShuffle(i,:) = xcorr(shufUnit,shufOther,maxLag);
-                    fprintf('xcorr %d of %d took %2.2f s\n',i,nShuffle,toc);
+                    %fprintf('xcorr %d of %d took %2.2f s\n',i,nShuffle,toc);
                 end
                 shuffleM = mean(corrShuffle,1);
                 shuffleS = std(corrShuffle,[],1);
                 
                 if any(abs(corr)>abs(shuffleM+2*shuffleS))
-                    sig = true
+                    sig = true;
                 else
                     sig = false;
                 end
