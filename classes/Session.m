@@ -482,19 +482,24 @@ classdef Session
             end
         end
         
-        function allUnits = collateUnits(sess)
+        function [allUnits, ident] = collateUnits(sess)
             numUnits = sess.numUnits();
+            ident.unitNum = [];
+            ident.trodeNum = [];
             %allUnits(numUnits) = singleUnit(NaN,NaN,NaN,NaN,NaN,NaN);
             k = 0;
             for i = 1:length(sess.trodes)
                 for j = 1:sess.trodes(i).numUnits
                     allUnits(k+1) = sess.trodes(i).units(j);
+                    ident.trodeNum(end+1) = i;
+                    ident.unitNum(end+1) = j;
                     k = k+1;
                 end
             end
             
             if ~exist('allUnits','var')
                 allUnits = [];
+                ident = [];
             end
         end
         
@@ -651,11 +656,12 @@ classdef Session
         
         function out = getAllORTuning(sess)
             numUnits = sess.numUnits;
-            allUnits = sess.collateUnits;
-            out = cell(1,numUnits);
+            [allUnits,ident] = sess.collateUnits;
+            out.tuning = cell(1,numUnits);
             for i = 1:numUnits
-                out{i}= sess.getORTuning(allUnits(i)); 
+                out.tuning{i}= sess.getORTuning(allUnits(i)); 
             end
+            out.ident = ident;
         end
         
         function out = getStimStartTime(sess,trials)
@@ -757,6 +763,72 @@ classdef Session
         function sess = zeroNoise(sess)
             for i = 1:length(sess.trodes)
                 sess.trodes(i).spikeWaveForms(sess.trodes(i).spikeAssignedCluster==1,:,:) = 0;
+            end
+        end
+        
+        function out = getOSI(sess,u)
+            tuning = sess.getORTuning(u);
+            ors = pi/2-tuning.ors;
+            m = [tuning.frs.m];
+            which1 = ors==pi;
+            which2 = ors==0;
+            m(which2) = mean([m(which1) m(which2)]);
+            m(which1) = [];
+            ors(which1) = [];
+            if isempty(m) || all(m==0)
+                out = nan;
+                return
+            end
+            try
+                % replicate
+                ORS = [ors+pi ors];
+                M = [m m];
+                
+                % get the OSI of this transformed data
+                % get the max of m and corr OR
+                whichMax = m==max(m);
+                if length(find(whichMax))>1
+                    temp = find(whichMax);
+                    whichMax(temp(2:end)) = 0;
+                end
+                maxm = max(m);
+                orForMax = ors(whichMax);
+                orForOrth = orForMax+pi/2;
+                
+                whichOrth = ORS==orForOrth;
+                orthm = M(whichOrth);
+                
+                out = (maxm-orthm)/(maxm+orthm);
+            catch ex
+                keyboard
+            end
+        end
+        
+        function out = getAllOSI(sess)
+            numUnits = sess.numUnits;
+            [allUnits, ident] = sess.collateUnits;
+            out.OSI = nan(1,numUnits);
+            out.ident = ident;
+            for i = 1:numUnits
+                out.OSI(i) = sess.getOSI(allUnits(i));
+            end
+        end
+        
+        function [str, ang] = getOrVector(sess,u)
+            tuning = sess.getORTuning(u);
+            ors = pi/2-tuning.ors;
+            m = [tuning.frs.m];
+            [str, ang] = sess.getVectorSum(ors,m);
+        end
+        
+        function out = getAllOrVectors(sess)
+            numUnits = sess.numUnits;
+            [allUnits, ident] = sess.collateUnits;
+            out.strength = nan(1,numUnits);
+            out.angle = nan(1,numUnits);
+            out.ident = ident;
+            for i = 1:numUnits
+                [out.strength(i), out.angle(i)]= sess.getOrVector(allUnits(i));
             end
         end
         
@@ -999,5 +1071,69 @@ classdef Session
                 fprintf('Found an issue\n');
             end
         end
+    end
+    
+    methods(Static)
+        
+        function [str,ang] = getVectorSum(ors,m)
+            % check if replicated data exists
+            if all(ismember([pi,0],ors))
+                which1 = ors==pi;
+                which2 = ors==0;
+                m(which2) = mean([m(which1) m(which2)]);
+                m(which1) = [];
+                ors(which1) = []; 
+            end            
+            if isempty(m) || all(m==0)
+                str = nan;
+                ang = nan;
+                return
+            end
+            try
+                % replicate
+                %ORS = [ors+pi ors];
+                %M = [m m];
+                ORS = ors;
+                M = m;
+%                 M = M/max(m);
+                
+                vecs = M.*exp(sqrt(-1)*ORS);
+                summedVec = sum(vecs);
+                str = abs(summedVec);
+                ang = angle(summedVec);
+            catch ex
+                keyboard
+            end
+        end
+        
+        function checkOrientationTuningModel(f,f0,tMax,dt,ax,col)
+            theta = 0:pi/8:pi;
+            fr = f0+f*exp(-((theta-tMax)/dt).^2);
+            if ~exist('ax','var')
+                ax = axes;
+            else
+                axes(ax);
+            end
+            pol = polar(theta,fr);
+            pol.Color = [0.5 0.5 0.5]; hold on;
+%             ax.YLim = [0 ax.YLim(2)];
+            [str,ang] = Session.getVectorSum(theta,fr);
+            
+            if ~exist('col','var')
+                col = 'r';
+            end            
+            polar([ang ang],[0 str],col);
+        end
+        
+        function compareOrientationTuningModel()
+            
+            f = 10; f0 = 1; tMax = pi/4; dt = pi/6;ax = axes;
+            Session.checkOrientationTuningModel(f,f0,tMax,dt,ax,'r');
+            
+            f = 10; f0 = 0; tMax = 3*pi/4; dt = pi/8;
+            Session.checkOrientationTuningModel(f,f0,tMax,dt,ax,'b');
+        end
+        
+        
     end
 end
