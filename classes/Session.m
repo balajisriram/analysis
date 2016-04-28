@@ -1093,14 +1093,14 @@ classdef Session
                 % replicate
                 %ORS = [ors+pi ors];
                 %M = [m m];
-                ORS = ors;
+                ORS = 2*ors;
                 M = m;
 %                 M = M/max(m);
                 
                 vecs = M.*exp(sqrt(-1)*ORS);
                 summedVec = sum(vecs);
                 str = abs(summedVec);
-                ang = angle(summedVec);
+                ang = angle(summedVec)/2;
             catch ex
                 keyboard
             end
@@ -1127,10 +1127,10 @@ classdef Session
         
         function compareOrientationTuningModel()
             
-            f = 10; f0 = 1; tMax = pi/4; dt = pi/6;ax = axes;
+            f = 10; f0 = 0; tMax = pi/4; dt = pi/6;ax = axes;
             Session.checkOrientationTuningModel(f,f0,tMax,dt,ax,'r');
             
-            f = 10; f0 = 0; tMax = 3*pi/4; dt = pi/8;
+            f = 10; f0 = 0; tMax = pi/2; dt = 2*pi;
             Session.checkOrientationTuningModel(f,f0,tMax,dt,ax,'b');
         end
         
