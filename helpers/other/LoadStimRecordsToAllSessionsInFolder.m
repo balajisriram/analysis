@@ -1,15 +1,16 @@
-sessLocation = 'F:\070\070_InspectedSessions';
-stimLocation = 'F:\070\StimRecords';
+sessLocation = 'D:\074\074_InspectedSessions';
+stimLocation = 'D:\074\StimRecords';
 clc;
 d = dir(sessLocation);
 d = d(~ismember({d.name},{'.','..'}));
-for i = 1:length(d)
+for i = 10:length(d)
+    
     clear sess
     load(fullfile(sessLocation,d(i).name));
-    sess.trialDetails = [];
+%     sess.trialDetails = [];
     % sess should exist
     if ~isempty(sess.trialDetails)
-        fprintf('\n%s : ALREADY DONE POPULATING',sess.sessionID);
+        fprintf('\n%s : ALREADY DONE POPULATING',d(i).name);
         sess.printDetailsAboutSession;
         continue
     end
@@ -20,13 +21,13 @@ for i = 1:length(d)
     stimrecfoldername = datestr(datevec(id,'yyyy-mm-dd'),'mmddyyyy');
     
     if ~isdir(fullfile(stimLocation,stimrecfoldername));
-        fprintf('\n%s : DID NOT FIND STIM RECORDS FOLDER',sess.sessionID);
+        fprintf('\n%s : DID NOT FIND STIM RECORDS FOLDER',d(i).name);
         continue
     end
     
     sess = sess.populateTrialDetails(fullfile(stimLocation,stimrecfoldername));
     
-    fprintf('\n%s : FINISHED POPULATING',sess.sessionID);
+    fprintf('\n%s : FINISHED POPULATING',d(i).name);
     sess.printDetailsAboutSession;
     
     save(fullfile(sessLocation,d(i).name),'sess');
