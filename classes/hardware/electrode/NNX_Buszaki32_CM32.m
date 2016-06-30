@@ -5,7 +5,7 @@ classdef NNX_Buszaki32_CM32<electrode
         groupings = {[1,2,3,4,5,6,7,8],[9,10,11,12,13,14,15,16],[17,18,19,20,21,22,23,24],[25,26,27,28,29,30,31,32]}; %Buszaki 32 groupings
     end
     properties
-        threshStdDev = 5; %default 5 std threshold
+        threshStdDev = 4; %default 5 std threshold
     end
     
     methods

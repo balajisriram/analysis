@@ -14,7 +14,7 @@ classdef NNX_A1x32_Poly3_5mm_25s_117<electrode
         function e = NNX_A1x32_Poly3_5mm_25s_117(varargin)
             e.type = 'Neuronexus';
             e.numChans = 32;
-            e.configuration = '4 Shank; 2 tets per shank';
+            e.configuration = 'Poly3';
             if length(varargin)==1
                 e.threshStdDev = varargin{1};
             end

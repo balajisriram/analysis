@@ -8,7 +8,7 @@ addpath(genpath(pwd))
 
 %these remain constant no matter what file is selected
 monitor = ViewSonicV3D245('one');
-etrode = A1x32Poly2();
+etrode = NNX_Buszaki32_CM32();
 rigState = StandardRigJuly2015();
 
 %gets all folders starting with 'bas'
