@@ -977,16 +977,20 @@ classdef Session
             
             fprintf('AVAILABLE STIM CLASSES\n');
             fprintf('----------------------\n');
-            availClasses = unique({tD.stimManagerClass});
+            stimClass = {tD.stimManagerClass};
+            stimClass = stimClass(~cellfun(@isempty,stimClass));
+            availClasses = unique(stimClass);
             for i = 1:length(availClasses)
                 fprintf('%s\n',availClasses{i});
             end
             
             fprintf('\nAVAILABLE STEPS\n');
             fprintf('---------------\n');
-            availSteps = unique({tD.stepName});
+            stepNames = {tD.stepName};
+            stepNames = stepNames(~cellfun(@isempty,stepNames));
+            availSteps = unique(stepNames);
             for i = 1:length(availSteps)
-                which = ismember({tD.stepName},availSteps{i});
+                which = ismember(stepNames,availSteps{i});
                 fprintf('\n%s : %d trials\n',availSteps{i},sum(which));
                 
                 % find the things that got varied in these trials
