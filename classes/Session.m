@@ -168,7 +168,11 @@ classdef Session
                 fprintf('PREV.DONE\t')
                 return
             end
-            trialsUnclean = real([sess.eventData.trials.trialNumber]);
+            try
+                trialsUnclean = real([sess.eventData.trials.trialNumber]);
+            catch
+                trialsUnclean = real([sess.eventData.trialData.trialNum]);
+            end
             trials = nan(size(trialsUnclean));
             which = diff([trialsUnclean(1)-1 trialsUnclean])~=1;
             trials(~which) = trialsUnclean(~which);
@@ -1217,7 +1221,7 @@ classdef Session
                 %M = [m m];
                 ORS = 2*ors;
                 M = m;
-%                 M = M/max(m);
+                M = M/max(m);
                 
                 vecs = M.*exp(sqrt(-1)*ORS);
                 summedVec = sum(vecs);
