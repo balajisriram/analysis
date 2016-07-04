@@ -5,7 +5,7 @@ addpath(genpath(pwd));
 
 %these remain constant no matter what file is selected
 monitor = ViewSonicV3D245('one');
-etrode = NNX_A1x32_Poly3_5mm_25s_117();
+etrode = NNX_Buszaki32_CM32();
 rigState = StandardRigJuly2015();
 
 switch computer

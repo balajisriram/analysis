@@ -52,6 +52,7 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
+        
         % detects and sorts spikes, as well as gets event data for a
         % session. The root method call.
         function session = process(session, mappings) 
@@ -161,7 +162,11 @@ classdef Session
                 fprintf('PREV.DONE\t')
                 return
             end
-            trialsUnclean = real([sess.eventData.trials.trialNumber]);
+            try
+                trialsUnclean = real([sess.eventData.trials.trialNumber]);
+            catch
+                trialsUnclean = real([sess.eventData.trialData.trialNum]);
+            end
             trials = nan(size(trialsUnclean));
             which = diff([trialsUnclean(1)-1 trialsUnclean])~=1;
             trials(~which) = trialsUnclean(~which);
@@ -408,6 +413,27 @@ classdef Session
             out = sum(~isnan(sess.trials));
         end
         
+        function out = misAlignmentInTrialNums(sess)
+            deets = [sess.trialDetails];
+            tNumDeets = [deets.trialNum];
+            tNum = sess.trials;
+            if length(tNum)~=length(tNumDeets)
+                out.trialNumbersDifferentSizes = true;
+            else
+                out.trialNumbersDifferentSizes = false;
+            end
+            
+            if ~out.trialNumbersDifferentSizes
+                if all(tNumDeets(~isnan(tNumDeets))==tNum(~isnan(tNum)))
+                    out.tNumsDifferent = false;
+                else
+                    out.tNumsDifferent = true;
+                end
+            else
+                out.tNumsDifferent = true;
+            end
+        end
+        
         % printStimDetails for trial
         function printStimDetails(sess,trial)
             ind = sess.getIndexForTrialFromTrialDetails(trial);
@@ -453,8 +479,45 @@ classdef Session
             end
             
         end
+
+        function out = misAlignmentInTrialNums(sess)
+            deets = [sess.trialDetails];
+            tNumDeets = [deets.trialNum];
+            tNum = sess.trials;
+            if length(tNum)~=length(tNumDeets)
+                out.trialNumbersDifferentSizes = true;
+            else
+                out.trialNumbersDifferentSizes = false;
+            end
+            
+            if ~out.trialNumbersDifferentSizes
+                if all(tNumDeets(~isnan(tNumDeets))==tNum(~isnan(tNum)))
+                    out.tNumsDifferent = false;
+                else
+                    out.tNumsDifferent = true;
+                end
+            else
+                out.tNumsDifferent = true;
+            end
+        end
         
-        
+        function printDetailsAboutSession(sess)
+            if isempty(sess.trialDetails)
+                fprintf('\nTRIAL DETAILS NOT AVAILABLE\n');
+                return
+            end
+            fprintf('\n NUM TRIALS: %d',length(sess.trials));
+            fprintf('\n NUM GOOD: %d',sess.numTrials);
+            fprintf('\n NUM NAN: %d',sum(isnan(sess.trials)));
+            fprintf('\n\n MIN TRIAL NUM: %d',sess.minTrialNum);
+            fprintf('\n MAX TRIAL NUM: %d',sess.maxTrialNum);
+            
+            out = sess.misAlignmentInTrialNums;
+            
+            fprintf('\n TRIAL NUMBERS LENGTHS MATCH IN DETAILS IS %d',~out.trialNumbersDifferentSizes)
+            fprintf('\n TRIAL NUMBERS MATCH IN DETAILS IS %d',~out.tNumsDifferent)
+            fprintf('\n\n')
+        end
     end
     methods % manipulate data within trodes
         % Manipulating and plotting data in the session
@@ -632,6 +695,82 @@ classdef Session
                 inds = zeros(1,length(sampInd));
                 inds(uint16(which)) = 1;
                 raster{i} = inds;
+            end
+        end
+        
+        function plotFailureRates(sess,u)
+            fA = sess.getFailureAnalysis(u);
+            
+            figure;
+            ax = subplot(1,2);
+            DURS = fA.DURS;
+            CTRS = fA.CTRS;
+            
+            % For Left
+%             whichOR = 
+        end
+        
+        function failureAnalysis = getFailureAnalysis(sess,unit)
+            temp = {sess.trialDetails.stepName};
+            temp = temp(~cellfun(@isempty,temp));
+            stepsHere = unique(temp);
+            if ismember('gratings_LED',stepsHere)
+                whichStepName = 'gratings_LED';
+            else
+                whichStepName = 'gratings';
+            end
+            whichStep = strcmp({sess.trialDetails.stepName},whichStepName);
+            
+            temp1 = {sess.trialDetails.trialNum};
+            temp1(find(cellfun(@isempty,temp1))) = {nan(size(find(cellfun(@isempty,temp1))))};
+            trNum = cell2mat(temp1); trNumThatStep = trNum(whichStep);
+            
+            tD = sess.trialDetails; 
+            temp2 = {tD.trialNum};
+            temp2(find(cellfun(@isempty,temp2))) = {nan(size(find(cellfun(@isempty,temp2))))};
+            goodTrNumInTD = temp2(whichStep);
+            sD = [tD(whichStep).stimDetails];
+            
+            orientations = [sD.orientations];
+            maxDurations = [sD.maxDuration];
+            contrasts = [sD.contrasts];
+            
+            ORS = unique(orientations);
+            DURS = unique(maxDurations);
+            CTRS = unique(contrasts);
+            
+            failureAnalysis.ORS = ORS;
+            failureAnalysis.DURS = DURS;
+            failureAnalysis.CTRS = CTRS;
+            
+            failureAnalysis.trials = cell(length(ORS),length(DURS),length(CTRS));
+            for i = 1:length(ORS)
+                for j = 1:length(DURS)
+                    for k = 1:length(CTRS)
+                        whichThatOR_DUR_CTR = orientations==ORS(i) & maxDurations==DURS(j) & contrasts==CTRS(k);
+                        failureAnalysis.trials{i,j,k}= cell2mat(goodTrNumInTD(whichThatOR_DUR_CTR));
+                    end
+                end
+            end
+            
+            failureAnalysis.spiking = cell(length(ORS),length(DURS),length(CTRS));
+            for i = 1:length(ORS)
+                for j = 1:length(DURS)
+                    timerange = [-0.1 DURS(j)/60+0.1]; %unit in frames
+                    for k = 1:length(CTRS)
+                        failureAnalysis.spiking{i,j,k}= unit.getRaster(sess.getStimStartTime(failureAnalysis.trials{i,j,k}),timerange);
+                    end
+                end
+            end
+            
+            failureAnalysis.rasters = cell(length(ORS),length(DURS),length(CTRS));
+            for i = 1:length(ORS)
+                for j = 1:length(DURS)
+                    timerange = [-0.1 DURS(j)/60+0.1]; %unit in frames
+                    for k = 1:length(CTRS)
+                        failureAnalysis.rasters{i,j,k}= Raster(failureAnalysis.trials{i,j,k},failureAnalysis.spiking{i,j,k},timerange);
+                    end
+                end
             end
         end
         
@@ -1165,7 +1304,7 @@ classdef Session
                 %M = [m m];
                 ORS = 2*ors;
                 M = m;
-%                 M = M/max(m);
+                M = M/max(m);
                 
                 vecs = M.*exp(sqrt(-1)*ORS);
                 summedVec = sum(vecs);

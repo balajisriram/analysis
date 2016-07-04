@@ -266,7 +266,7 @@ function featureAxis_UpdateFcn(hObject, eventdata, handles)
 
 % go to the axis
 axes(handles.featureAxis);cla; hold on;
-
+return % doing nothing right now because not very useful...
 % now check if worth plotting
 if isempty(handles.trode.spikeEvents)
     text(0.5,0.5,'no spikes in trode','HorizontalAlignment','center','VerticalAlignment','middle');
@@ -322,7 +322,15 @@ clusterVisibilityValues = getClusterVisibilityValues(handles, handles.trode.spik
 
 for i = 1:length(clusterVisibilityValues)
     if clusterVisibilityValues(i)
-        set(handles.waveAxisHandles{i}, 'visible', 'on', 'color', colors(i,:));
+        l = length(handles.waveAxisHandles{i});
+        if l>100
+            numDisplayed = 100;
+        else
+            numDisplayed = l;
+        end
+        l = randperm(l);
+        
+        set(handles.waveAxisHandles{i}(l(1:numDisplayed)), 'visible', 'on', 'color', colors(i,:));
     else
         set(handles.waveAxisHandles{i}, 'visible', 'off');
     end
@@ -340,7 +348,8 @@ end
 axes(handles.waveAxis);
 title('waveforms');
 set(gca,'XTick',[]);
-axis([1 numChans*numSamps  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
+% axis([1 numChans*numSamps  1.1*minmax(handles.trode.spikeWaveForms(:)') ])
+axis([1 numChans*numSamps  -500 500])
 
 end
 
@@ -381,7 +390,7 @@ for i=1:length(handles.trode.spikeRankedCluster)
         fillWave = fill([1:lengthOfWaveform fliplr(1:lengthOfWaveform)]',[meanWave+stdWave fliplr(meanWave-stdWave)]',colors(i,:));set(fillWave,'edgeAlpha',0,'faceAlpha',.2);
     end
 end
-
+grid on
 % set(gca,'XTick',[1 25 61],'XTickLabel',{sprintf('%2.2f',-24000/handles.plottingInfo.samplingRate),'0',sprintf('%2.2f',36000/handles.plottingInfo.samplingRate)});xlabel('ms');
 end
 
