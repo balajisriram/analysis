@@ -263,23 +263,40 @@ classdef Session
             stopInd = endTime*samplingFreq;
         end
         
-        % gets start and end time for a trial
-        function [startTime, endTime] =  getTrialStartStopTime(sess, trial)
-            if trial > maxTrialNum(sess) || trial < minTrialNum(sess)
+        % getIndexForTrialFromEventData
+        function out = getIndexForTrialFromEventData(sess,trial)
+            if trial > sess.maxTrialNum || trial < sess.minTrialNum
                 error('ERROR: trial out of range of session');
             end
-            ind = (trial - minTrialNum(sess)) + 1; %% Assumes that trials increase 1 at a time.
+            allEventTrialnumbers = {sess.eventData.trials.trialNumber};
+            temp = cellfun(@(x) x==trial,allEventTrialnumbers,'UniformOutput',false);
+            temp(cellfun(@isempty,temp)) = {false}; % make the missing values to zero
             
-            if sess.eventData.trials(ind).trialNumber ~= trial
-                warning('Possibly not displaying start/stop of correct trial');
-                disp('Passed in trial:');
-                disp(trial);
-                disp('However startTime, endTime are of trial');
-                disp(sess.eventData.trials(ind).trialNumber);
+            out = cell2mat(temp);
+        end
+        
+        % getIndexForTrialFromTrialDetails
+        function out = getIndexForTrialFromTrialDetails(sess,trial)
+            if trial > sess.maxTrialNum || trial < sess.minTrialNum
+                error('ERROR: trial out of range of session');
             end
-
-            startTime = sess.eventData.trials(ind).start;
-            endTime = sess.eventData.trials(ind).stop;
+            allTrialNumbers = {sess.trialDetails.trialNum};
+            temp = cellfun(@(x) x==trial,allTrialNumbers,'UniformOutput',false);
+            temp(cellfun(@isempty,temp)) = {false}; % make the missing values to zero
+            
+            out = cell2mat(temp);
+        end
+        
+        % gets start and end time for a trial
+        function [startTime, endTime] =  getTrialStartStopTime(sess, trial)
+            which = sess.getIndexForTrialFromEventData(trial);
+            if any(which)
+                startTime = sess.eventData.trials(which).start;
+                endTime = sess.eventData.trials(which).stop;
+            else
+                startTime = NaN;
+                endTime = NaN;
+            end
         end
         
         % gets all the events for a passed in trial
@@ -386,9 +403,58 @@ classdef Session
             end
         end
         
+        % numTrials
         function out = numTrials(sess)
             out = sum(~isnan(sess.trials));
         end
+        
+        % printStimDetails for trial
+        function printStimDetails(sess,trial)
+            ind = sess.getIndexForTrialFromTrialDetails(trial);
+            trialDetail = sess.trialDetails(ind);
+            
+            fprintf('\n TRIAL NUMBER : %d',trialDetail.trialNum);
+            fprintf('\n STEPNAME : %s',trialDetail.stepName);
+            fprintf('\n DURATION : %2.2f',trialDetail.stimDetails.maxDuration*1/60);
+            fprintf('\n CONTRAST : %2.2f',trialDetail.stimDetails.contrasts);
+            fprintf('\n OR : %2.2f\n',rad2deg(trialDetail.stimDetails.orientations));
+        end
+        
+        % getStimDetails for trial
+        function out = getStimDetailsForTrial(sess,trials)
+            ind = sess.getIndexForTrialFromTrialDetails(trials);
+            trialDetail = sess.trialDetails(ind);
+            if ~isempty(trialDetail)
+            out = [trialDetail.trialNum trialDetail.stimDetails.orientations trialDetail.stimDetails.contrasts trialDetail.stimDetails.maxDuration];
+            else
+                out = [trials NaN NaN NaN];
+            end
+        end
+        
+        function out = getStimDetails(sess)
+            out = nan(sess.numTrials, 4);
+            trs = sess.minTrialNum:sess.maxTrialNum;
+            for i = 1:length(trs);
+                out(i,:) = sess.getStimDetailsForTrial(trs(i));
+            end
+        end
+        
+        function out = getStimAndSpikeNumberDetails(sess,durationAfterStimEndInMS)
+            stimDeets = sess.getStimDetails;
+            out = nan(size(stimDeets,1),4+sess.numUnits);
+            out(:,1:4) = stimDeets;
+            allUnits = sess.collateUnits;
+            trs = sess.minTrialNum:sess.maxTrialNum;
+            for i = 1:length(trs)
+                for j = 1:length(allUnits)
+                    temp = sess.trialRaster(trs(i),allUnits(j),[0 out(i,4)/60*1000+durationAfterStimEndInMS]);
+                    out(i,4+j) = sum(temp{1});
+                end
+            end
+            
+        end
+        
+        
     end
     methods % manipulate data within trodes
         % Manipulating and plotting data in the session
@@ -555,8 +621,8 @@ classdef Session
             rangeInSamps = (range/1000)*freq; %ms to samples
             
             
-            
-            stimOnsetInd = [sess.eventData.stim(trials).start]*freq;
+            ind = sess.getIndexForTrialFromEventData(trials);
+            stimOnsetInd = [sess.eventData.stim(ind).start]*freq;
             minInd = stimOnsetInd-rangeInSamps(1);
             maxInd = stimOnsetInd+rangeInSamps(2);
             
@@ -564,7 +630,7 @@ classdef Session
                 sampInd = minInd(i):maxInd(i);
                 which = intersect(unit.index, sampInd)-minInd(i)+1;
                 inds = zeros(1,length(sampInd));
-                inds(which) = 1;
+                inds(uint16(which)) = 1;
                 raster{i} = inds;
             end
         end
