@@ -239,6 +239,44 @@ classdef Session
             fileName = [sess.sessionFolder,'_',int2str(now),'_Inspected.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end        
+        
+        function plotAllClusters(sess)
+            for i = 1:length(sess.trodes)
+                f = sess.plotAllClustersInTrode(i);
+                pause
+                try
+                close(f);                
+                end
+            end
+        end
+        
+        function f = plotAllClustersInTrode(sess,tr)
+            nClusts = unique(sess.trodes(tr).spikeAssignedCluster);
+            arrParam.mode = 'maxAxesPerFig';
+            arrParam.maxAxesPerFig = 10;
+            [nx, ny, nFigs] = getGoodArrangement(length(nClusts),arrParam);
+            clust = 1;
+            axNum = 1;
+            trodenum = 1;
+            f = figure;
+            for i = 1:length(nClusts)
+                ax = subplot(nx, ny, axNum);
+                which = sess.trodes(tr).spikeAssignedCluster==clust;
+                spikes = mean(sess.trodes(tr).spikeWaveForms(which,:));
+                spikeErr = std(sess.trodes(tr).spikeWaveForms(which,:))/sqrt(size(sess.trodes(tr).spikeWaveForms(which,:),1));
+                f_err = fill([1:length(spikes) fliplr(1:length(spikes))],[spikes+spikeErr fliplr(spikes-spikeErr)],'b');
+                set(f_err,'FaceAlpha',0.5);
+                hold on; plot(1:length(spikes),spikes,'b');
+                clust = clust+1;
+                axNum = axNum+1;
+                
+                if axNum >10
+                    % make new figure
+                    f(end+1) = figure;
+                    axNum = 1;
+                end
+            end
+        end
     end
     methods % collect important facts about session
         % gets smallest trial number
@@ -478,27 +516,6 @@ classdef Session
                 end
             end
             
-        end
-
-        function out = misAlignmentInTrialNums(sess)
-            deets = [sess.trialDetails];
-            tNumDeets = [deets.trialNum];
-            tNum = sess.trials;
-            if length(tNum)~=length(tNumDeets)
-                out.trialNumbersDifferentSizes = true;
-            else
-                out.trialNumbersDifferentSizes = false;
-            end
-            
-            if ~out.trialNumbersDifferentSizes
-                if all(tNumDeets(~isnan(tNumDeets))==tNum(~isnan(tNum)))
-                    out.tNumsDifferent = false;
-                else
-                    out.tNumsDifferent = true;
-                end
-            else
-                out.tNumsDifferent = true;
-            end
         end
         
         function printDetailsAboutSession(sess)
