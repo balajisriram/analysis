@@ -44,7 +44,7 @@ classdef KlustaKwik <spikeSortingParam
         
        
         function [assignedClusters, rankedClusters, par, spikeModel] = sortSpikesDetected(par, spikeWaveforms, spikeTimestamps)
-            currentDir=pwd;
+            currentDir = fileparts(fileparts(fileparts(mfilename('fullpath'))));
             tempDir=fullfile(currentDir,'helpers','KlustaKwik');
             cd(tempDir);
 
@@ -63,15 +63,16 @@ classdef KlustaKwik <spikeSortingParam
                 featuresToUse=[featuresToUse '1'];
             end
             % now run KlustaKwik
-            if ispc
+            switch computer
+                case {'PCWIN32','PCWIN64','PCWIN'}
                 cmdStr=['KlustaKwik.exe temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
                     ' -nStarts ' num2str(par.nStarts) ' -SplitEvery ' num2str(par.splitEvery) ...
                     ' -MaxPossibleClusters ' num2str(par.maxPossibleClusters) ' -UseFeatures ' featuresToUse ' -Debug ' num2str(0) ];
-            elseif IsLinux
-                cmdStr=['./KKLinux temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
+                case  'GLNXA64'
+                cmdStr=['./KKLinux2 temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
                     ' -nStarts ' num2str(par.nStarts) ' -SplitEvery ' num2str(par.splitEvery) ...
                     ' -MaxPossibleClusters ' num2str(par.maxPossibleClusters) ' -UseFeatures ' featuresToUse ' -Debug ' num2str(0) ];
-            elseif ismac
+                case 'MACI64'
                 cmdStr=['./KKMac temp 1 -MinClusters ' num2str(par.minClusters) ' -MaxClusters ' num2str(par.maxClusters) ...
                     ' -nStarts ' num2str(par.nStarts) ' -SplitEvery ' num2str(par.splitEvery) ...
                     ' -MaxPossibleClusters ' num2str(par.maxPossibleClusters) ' -UseFeatures ' featuresToUse ' -Debug ' num2str(0) ];
@@ -89,7 +90,7 @@ classdef KlustaKwik <spikeSortingParam
                 end
             catch
                 warning('huh? no .clu?')
-                %keyboard
+                keyboard
             end
 
             % throw away first element of assignedClusters - the first line of the cluster file is the number of clusters found
