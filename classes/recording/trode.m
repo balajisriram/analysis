@@ -53,7 +53,7 @@ classdef trode
                 if length(a)>1
                     error('too many records');
                 else
-                    [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data([dataPath,'\',a.name]);
+                    [rawData, rawTimestamps, ~, dataMean, dataStd] =load_open_ephys_data(fullfile(dataPath,a.name));
                     if any(((diff(rawTimestamps)-mean(diff(rawTimestamps)))/mean(diff(rawTimestamps)))> tr.maxAllowableSamplingRateDeviation)
                         warning('bad timestamps! why?');  %weird timestamp bug, stores in messages if bug occurs
                         warn.flag=1;
