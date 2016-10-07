@@ -245,44 +245,6 @@ classdef Session
             fileName = [sess.sessionFolder,'_',int2str(now),'_Inspected.mat'];
             save(fileName,'sess', '-v7.3'); %for some reason wouldnt save correctly unless '-v7.3' command added
         end        
-        
-        function plotAllClusters(sess)
-            for i = 1:length(sess.trodes)
-                f = sess.plotAllClustersInTrode(i);
-                pause
-                try
-                close(f);                
-                end
-            end
-        end
-        
-        function f = plotAllClustersInTrode(sess,tr)
-            nClusts = unique(sess.trodes(tr).spikeAssignedCluster);
-            arrParam.mode = 'maxAxesPerFig';
-            arrParam.maxAxesPerFig = 10;
-            [nx, ny, nFigs] = getGoodArrangement(length(nClusts),arrParam);
-            clust = 1;
-            axNum = 1;
-            trodenum = 1;
-            f = figure;
-            for i = 1:length(nClusts)
-                ax = subplot(nx, ny, axNum);
-                which = sess.trodes(tr).spikeAssignedCluster==clust;
-                spikes = mean(sess.trodes(tr).spikeWaveForms(which,:));
-                spikeErr = std(sess.trodes(tr).spikeWaveForms(which,:))/sqrt(size(sess.trodes(tr).spikeWaveForms(which,:),1));
-                f_err = fill([1:length(spikes) fliplr(1:length(spikes))],[spikes+spikeErr fliplr(spikes-spikeErr)],'b');
-                set(f_err,'FaceAlpha',0.5);
-                hold on; plot(1:length(spikes),spikes,'b');
-                clust = clust+1;
-                axNum = axNum+1;
-                
-                if axNum >10
-                    % make new figure
-                    f(end+1) = figure;
-                    axNum = 1;
-                end
-            end
-        end
     end
     methods % collect important facts about session
         % gets smallest trial number
@@ -540,6 +502,36 @@ classdef Session
             fprintf('\n TRIAL NUMBERS LENGTHS MATCH IN DETAILS IS %d',~out.trialNumbersDifferentSizes)
             fprintf('\n TRIAL NUMBERS MATCH IN DETAILS IS %d',~out.tNumsDifferent)
             fprintf('\n\n')
+        end
+        
+        function sess = fixTrialNumbers(sess)
+            
+        end
+        
+        function out = DetailsAndEventDataAreCongruous(sess)
+            sess = sess.fixTrialNumbers();
+            % there are different ways in which we represent the trial data
+            if ~isempty(sess.eventData.trialData)
+            else
+                dets = [sess.trialDetails];
+                TrialNumInStimDetails = [dets.trialNum];
+                stimDets = [dets.stimDetails];
+                StimDurationFromStimulusDetails = [stimDets.maxDuration]/60;
+                
+                TrialNumInStimEventData = [sess.eventData.stim.trialNumber];
+                StimStartTimes = [sess.eventData.stim.start];
+                StimStopTimes = [sess.eventData.stim.stop];
+                StimDurationsFromEventData = StimStopTimes-StimStartTimes;
+                
+                TrialsInDetailsNotInEvents = double(setdiff(TrialNumInStimDetails,TrialNumInStimEventData));
+                TrialsInEventsNotInDetails = double(setdiff(TrialNumInStimEventData,TrialNumInStimDetails));
+                if length(TrialNumInStimEventData>TrialNumInStimDetails)
+                else
+                    extraTrials
+                end
+                
+                keyboard
+            end
         end
     end
     methods % manipulate data within trodes
