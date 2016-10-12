@@ -265,25 +265,6 @@ classdef Session
             end            
         end
         
-        % trialNumbersAreInOrder
-        function [inOrder, reason]= trialNumbersAreInOrder(sess)
-            inOrder = true;
-            reason = ' ';
-            if length(sess.trials) ~= length([sess.eventData.stim.trialNumber])
-                inOrder = inOrder && false;
-                reason = [reason 'unequaltrialNumbers; '];
-            elseif any(sess.trials~=[sess.eventData.stim.trialNumber])
-                inOrder = inOrder && false;
-                reason = [reason 'some unequal trialValues; '];
-            end
-            if any(~isreal([sess.eventData.stim.trialNumber]))
-                inOrder = inOrder && false;
-                reason = [reason 'some values are complex; '];
-            end
-            
-            
-        end
-        
         % gets start and end index for a trial
         function [startInd,stopInd] = getIndexForTrial(sess, trial) 
             [startTime, endTime] =  getTrialStartStopTime(sess, trial); 
@@ -522,41 +503,10 @@ classdef Session
             fprintf('\n TRIAL NUMBERS MATCH IN DETAILS IS %d',~out.tNumsDifferent)
             fprintf('\n\n')
         end
-        
-        function sess = fixTrialNumbers(sess)
-            minTrialNum = sess.minTrialNum;
-            if sess.eventData.stim(1).trialNumber ~=minTrialNum
-                return
-            end
-            try
-                for i = 1:length(sess.eventData.stim)
-                    if sess.eventData.stim(i).trialNumber ~= (i-1) + minTrialNum
-                        fprintf('previous:\t%d, current:\t%d, next:\t%d',sess.eventData.stim(i-1).trialNumber,sess.eventData.stim(i).trialNumber,sess.eventData.stim(i+1).trialNumber)
-                        % skip one and see if that fits
-                        if sess.eventData.stim(i+1).trialNumber == i + minTrialNum;
-                            sess.eventData.stim(i).trialNumber = (i-1) + minTrialNum;
-                        end
-                    end
-                    
-                    if sess.eventData.trials(i).trialNumber ~= (i-1) + minTrialNum
-                        % skip one and see if that fits
-                        if sess.eventData.trials(i+1).trialNumber == i + minTrialNum;
-                            sess.eventData.trials(i).trialNumber = (i-1) + minTrialNum;
-                        end
-                    end
-                    
-                    if sess.eventData.frame(i).trialNumber ~= (i-1) + minTrialNum
-                        % skip one and see if that fits
-                        if sess.eventData.frame(i+1).trialNumber == i + minTrialNum;
-                            sess.eventData.frame(i).trialNumber = (i-1) + minTrialNum;
-                        end
-                    end
-                end
-            catch ex
-                getReport(ex)
-            end
-        end
-        
+                
+    end
+    
+    methods % methods to deal with the craziness of adding eventData
         function out = DetailsAndEventDataAreCongruous(sess)
             out = false;
             sess = sess.fixTrialNumbers();
@@ -586,6 +536,111 @@ classdef Session
         
         function out = containsEventData(sess)
             out = ~isempty(sess.eventData.stim);
+        end
+        
+        function sess = fixComplexTrialNumbers(sess)
+            for i = 1:length(sess.eventData.trials)
+                if ~isreal(sess.eventData.trials(i).trialNumber)
+                    keyboard
+                end
+            end
+        end
+        
+        function sess = fixNonSequentialTrialNumbers(sess)
+            fprintf('\n\n');
+            minTrialNum = sess.minTrialNum;
+            for i = 1:length(sess.eventData.stim)-1
+                try
+                    if isempty(sess.eventData.stim(i).trialNumber) || sess.eventData.stim(i).trialNumber ~= (i-1) + minTrialNum
+                        fprintf('(i-2):\t%d, (i-1):\t%d, (i):\t%d, (i+1):\t%d, (i+1):\t%d\n',...
+                            sess.eventData.stim(i-2).trialNumber,...
+                            sess.eventData.stim(i-1).trialNumber,...
+                            sess.eventData.stim(i).trialNumber,...
+                            sess.eventData.stim(i+1).trialNumber,...
+                            sess.eventData.stim(i+2).trialNumber)
+                        sess.eventData.stim(i).trialNumber = input('trialNumber:');
+                        sess.eventData.trials(i).trialNumber = sess.eventData.stim(i).trialNumber;
+                        sess.eventData.frame(i).trialNumber = sess.eventData.stim(i).trialNumber;
+                    end
+                catch ex
+                    getReport(ex)
+                    keyboard
+                end
+            end
+        end
+        
+        function sess = fixTrialNumbers(sess)
+            fprintf('\n\n');
+            minTrialNum = sess.minTrialNum;
+            if sess.eventData.stim(1).trialNumber ~=minTrialNum
+                return
+            end
+            try
+                for i = 1:length(sess.eventData.stim)-1
+                    if sess.eventData.stim(i).trialNumber ~= (i-1) + minTrialNum
+                        fprintf('previous:\t%d, current:\t%d, next:\t%d\n',sess.eventData.stim(i-1).trialNumber,sess.eventData.stim(i).trialNumber,sess.eventData.stim(i+1).trialNumber)
+                        % skip one and see if that fits
+                        if sess.eventData.stim(i+1).trialNumber == i + minTrialNum;
+                            sess.eventData.stim(i).trialNumber = (i-1) + minTrialNum;
+                        else
+                            keyboard
+                        end
+                    end
+                    
+                    if sess.eventData.trials(i).trialNumber ~= (i-1) + minTrialNum
+                        % skip one and see if that fits
+                        if sess.eventData.trials(i+1).trialNumber == i + minTrialNum;
+                            sess.eventData.trials(i).trialNumber = (i-1) + minTrialNum;
+                        else
+                            keyboard
+                        end
+                    end
+                    
+                    if sess.eventData.frame(i).trialNumber ~= (i-1) + minTrialNum
+                        % skip one and see if that fits
+                        if sess.eventData.frame(i+1).trialNumber == i + minTrialNum;
+                            sess.eventData.frame(i).trialNumber = (i-1) + minTrialNum;
+                        else
+                            keyboard
+                        end
+                    end
+                end
+            catch ex
+                getReport(ex)
+            end
+        end
+        
+        % eventTrialNumbersAreInSequence
+        function [inOrder]= eventTrialNumbersAreInSequence(sess)
+            inOrder = false;
+            try
+                if ~all(sess.minTrialNum:sess.maxTrialNum ~= [sess.eventData.stim.trialNumber])
+                    inOrder = false;
+                else
+                    inOrder = true;
+                end
+            catch ex
+                getReport(ex);
+            end
+        end
+        
+        % trialNumbersAreInOrder
+        function [inOrder, reason]= trialNumbersAreInOrder(sess)
+            inOrder = true;
+            reason = ' ';
+            if length(sess.trials) ~= length([sess.eventData.stim.trialNumber])
+                inOrder = inOrder && false;
+                reason = [reason 'unequaltrialNumbers; '];
+            elseif any(sess.trials~=[sess.eventData.stim.trialNumber])
+                inOrder = inOrder && false;
+                reason = [reason 'some unequal trialValues; '];
+            end
+            if any(~isreal([sess.eventData.stim.trialNumber]))
+                inOrder = inOrder && false;
+                reason = [reason 'some values are complex; '];
+            end
+            
+            
         end
     end
     methods % manipulate data within trodes

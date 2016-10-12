@@ -76,7 +76,7 @@ classdef eventData
         
         %gets trial eventData
         function e = getTrialData(e, ind)
-            trialsEventInd = (e.out(ind).eventType==3); %only want TTL trials
+            trialsEventInd = (e.out(ind).eventType==5); %only want TTL trials
             trialsRisingInd = (e.out(ind).eventID==1);     
             
             trialsStart = e.out(ind).eventTimes(trialsEventInd & trialsRisingInd);
