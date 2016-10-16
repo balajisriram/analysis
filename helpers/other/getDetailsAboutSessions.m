@@ -9,11 +9,11 @@ DetailsAndEventDataAreCongruous = nan(size(d));
 MinTrialNumber = nan(size(d));
 MaxTrialNumber = nan(size(d));
 HasComplexTrialNumbers = nan(size(d));
-HasEventData = nan(size(d));
 TrialNumbersAreInOrder = nan(size(d));
 Reason = cell(size(d));
 EventTrialNumbersInSequence = nan(size(d));
-
+HasStimInEventData = nan(size(d));
+HasFrameInEventData = nan(size(d));
 for i = 1:length(d)
     disp(i)
     load(fullfile(locStart,d(i).name));
@@ -24,19 +24,15 @@ for i = 1:length(d)
     MinTrialNumber(i) = sess.minTrialNum;
     MaxTrialNumber(i) = sess.maxTrialNum;
     
-    HasEventData(i) = sess.containsEventData();
+    HasStimInEventData(i) = sess.containsStimInEventData();
+    HasFrameInEventData(i) = sess.containsFramesInEventData();
     
-    if HasEventData(i)
-        HasComplexTrialNumbers(i) = ~all(isreal([sess.eventData.stim.trialNumber]));
-        if HasComplexTrialNumbers(i)
-            sess = sess.fixComplexTrialNumbers();
-            save(fullfile(locStart,d(i).name),'sess');
-        end
+    if HasStimInEventData(i)
         EventTrialNumbersInSequence(i) = sess.eventTrialNumbersAreInSequence();
-        if ~EventTrialNumbersInSequence(i)
-            sess = sess.fixNonSequentialTrialNumbers();
-            save(fullfile(locStart,d(i).name),'sess');
-        end
+%         if ~EventTrialNumbersInSequence(i)
+%             sess = sess.fixNonSequentialTrialNumbers();
+%             save(fullfile(locStart,d(i).name),'sess');
+%         end
     end
 %     [TrialNumbersAreInOrder(i), Reason{i}] = sess.trialNumbersAreInOrder;
 %     EventTrialNumbersInSequence(i) = sess.eventTrialNumbersAreInSequence();
@@ -46,4 +42,4 @@ for i = 1:length(d)
 %     end
     clear sess;    
 end
-Details = table(SessionName,HasStimRecords,HadErrorWithStimLoad,NumUnits,MinTrialNumber,MaxTrialNumber,HasEventData,HasComplexTrialNumbers,EventTrialNumbersInSequence)
+Details = table(SessionName,HasStimRecords,HadErrorWithStimLoad,NumUnits,MinTrialNumber,MaxTrialNumber,HasStimInEventData,HasFrameInEventData,EventTrialNumbersInSequence)

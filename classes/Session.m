@@ -534,8 +534,12 @@ classdef Session
             end
         end
         
-        function out = containsEventData(sess)
+        function out = containsStimInEventData(sess)
             out = ~isempty(sess.eventData.stim);
+        end
+        
+        function out = containsFramesInEventData(sess)
+            out = ~isempty(sess.eventData.frame);
         end
         
         function sess = fixComplexTrialNumbers(sess)
@@ -614,13 +618,17 @@ classdef Session
         function [inOrder]= eventTrialNumbersAreInSequence(sess)
             inOrder = false;
             try
-                if ~all(sess.minTrialNum:sess.maxTrialNum ~= [sess.eventData.stim.trialNumber])
-                    inOrder = false;
-                else
+                trialsInStim = [sess.eventData.stim.trialNumber];
+                trialSequence = sess.minTrialNum:sess.maxTrialNum;
+                if length(setdiff(trialSequence,trialsInStim))==1 && setdiff(trialSequence,trialsInStim)==sess.maxTrialNum
+                    inOrder = true; % sometimes the last trial is missing
+                elseif isempty(setdiff(trialSequence,trialsInStim))
                     inOrder = true;
+                else
+                    inOrder = false;
                 end
             catch ex
-                getReport(ex);
+                getReport(ex)
             end
         end
         
