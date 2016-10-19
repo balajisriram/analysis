@@ -2,7 +2,7 @@
 % the details for latter sessions when the data isnt available any longer
 
 clear all;
-loc = '/Volumes/My Passport/workingSessionsnoWaveform/';
+loc = 'E:\workingSessionsnoWaveform';
 d = dir(fullfile(loc,'*.mat'));
 
 for j = 1:length(d)
@@ -15,41 +15,47 @@ for j = 1:length(d)
     
     doPlotFrameDuration = true;
     if doPlotFrameDuration
-        trialNumberInFrames = [];
-        numFramesInFrames = [];
-        trialNumberInStim = [];
-        numFramesInStim = [];
-        for i = 1:length(frames)
-            if ~isempty(frames(i).start)
-                trialNumberInFrames(end+1) = frames(i).trialNumber;
-                numFramesInFrames(end+1) = length(frames(i).start)-2;
-                % look for this in stim Details
-                whichTrialNum = [sess.trialDetails.trialNum]==frames(i).trialNumber;
-                if ~any(whichTrialNum)
-                    trialNumberInStim(end+1) = NaN;
-                    numFramesInStim(end+1) = NaN;
-                else
-                    trialNumberInStim(end+1) = frames(i).trialNumber;
-                    sd = [sess.trialDetails.stimDetails];
-                    durs = [sd.maxDuration];
-                    numFramesInStim(end+1) = durs(whichTrialNum);
+        f = figure;
+        
+        try
+            trialNumberInFrames = [];
+            numFramesInFrames = [];
+            trialNumberInStim = [];
+            numFramesInStim = [];
+            for i = 1:length(frames)
+                if ~isempty(frames(i).start)
+                    trialNumberInFrames(end+1) = frames(i).trialNumber;
+                    numFramesInFrames(end+1) = length(frames(i).start)-2;
+                    % look for this in stim Details
+                    whichTrialNum = [sess.trialDetails.trialNum]==frames(i).trialNumber;
+                    if ~any(whichTrialNum)
+                        trialNumberInStim(end+1) = NaN;
+                        numFramesInStim(end+1) = NaN;
+                    else
+                        trialNumberInStim(end+1) = frames(i).trialNumber;
+                        sd = [sess.trialDetails.stimDetails];
+                        durs = [sd.maxDuration];
+                        numFramesInStim(end+1) = durs(whichTrialNum);
+                    end
                 end
             end
+            
+            ax = subplot(2,2,1); hold on;
+            plot(trialNumberInStim,trialNumberInFrames,'k.');
+            title('trNum vs trNum');
+            
+            ax = subplot(2,2,2); hold on;
+            plot(numFramesInStim,numFramesInFrames,'k.');
+            
+            ax = subplot(2,2,3); hold on;
+            corrs = xcorr(numFramesInStim,numFramesInFrames,10);
+            plot(corrs,'k');
+            [~,ind] = max(corrs);
+            text(1,1,sprintf('%d',ind),'Units','normalized','HorizontalAlignment','right','VerticalAlignment','top');
+        catch ex
+            getReport(ex)
+            d(j).name
         end
-        f = figure;
-        ax = subplot(2,2,1); hold on;
-        plot(trialNumberInStim,trialNumberInFrames,'k.');
-        title('trNum vs trNum');
-        
-        ax = subplot(2,2,2); hold on;
-        plot(numFramesInStim,numFramesInFrames,'k.');
-        
-        ax = subplot(2,2,3); hold on;
-        corrs = xcorr(numFramesInStim,numFramesInFrames,10);
-        plot(corrs,'k');
-        [~,ind] = max(corrs);
-        text(1,1,sprintf('%d',ind),'Units','normalized','HorizontalAlignment','right','VerticalAlignment','top');
-        
         name = d(j).name;
         name = name(1:end-3); % remove the .mat
         name = [name '.png'];
