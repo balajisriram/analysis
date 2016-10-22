@@ -1,12 +1,13 @@
-% Establish the relationship between Stim and Frames (this is to fill in
-% the details for latter sessions when the data isnt available any longer
+% This script loops over sessions and creates figures about 
+% (1) Firing rates of neurons
+% (2) Statistics of ISI
 
 clear all;
 loc = 'F:\workingSessionsnoWaveform';
 d = dir(fullfile(loc,'*.mat'));
 
-ORTUNINGS = {};
-ORVECTORS = {};
+MEANFIRINGRATE = {};
+ISIDISTRIBUTION = {};
 OSIS = {};
 
 for j = 1:length(d)
@@ -15,42 +16,37 @@ for j = 1:length(d)
     load(fullfile(loc,d(j).name));
     disp(d(j).name)
     try
-        orTuning = sess.getAllORTuning;
+        fr = sess.getFeature('firingRate');
     catch ex
         getReport(ex);
-        orTuning = [];
+        fr = [];
     end
-    ORTUNINGS{end+1} = orTuning;
-    
-    try
-        orVector = sess.getAllOrVectors;
-    catch ex
-        getReport(ex);
-        orVector = [];
-    end
-    ORVECTORS{end+1} = orVector;
-    
-    try
-        OSI = sess.getAllOSI;
-    catch ex
-        getReport(ex);
-        OSI = [];
-    end
-    OSIS{end+1} = OSI;
+    MEANFIRINGRATE{end+1} = fr;
     
 end
 
-%% 
+firingRates = [];
+for j = 1:length(MEANFIRINGRATE)
+    if ~isempty(MEANFIRINGRATE{j})
+    firingRates = [firingRates MEANFIRINGRATE{j}.firingRates];
+    end
+end
 
 f = figure;
-ax = axes;
-OSIs = [];
-for j = 1:length(OSIS)
-    if ~isempty(OSIS{j})
-    OSIs = [OSIs OSIS{j}.OSI];
-    end
-end
+f.Position = [-1566 476 1109 420];
+ax = subplot(1,2,1);
+hist(firingRates,40);
 
-OSIs = OSIs(OSIs>0 & OSIs<1);
-hist(OSIs,100);
+ax = subplot(1,2,2); hold on;
+hist(log10(firingRates),40);
+ax.XTick = [log10(0.01:0.01:0.1) log10(0.2:0.1:1) log10(2:1:10) log10(20:10:100)];
+ax.XTickLabel = {};
 
+Labels = {'0.01'}; for i = 1:8, Labels{end+1} = ''; end
+Labels{end+1} = '0.1'; for i = 1:8, Labels{end+1} = '';end
+Labels{end+1} = '1'; for i = 1:8,Labels{end+1} = '';end
+Labels{end+1} = '10';for i = 1:8,Labels{end+1} = '';end
+Labels{end+1} = '100';
+ax.XTickLabel = Labels;
+
+[mu,sig,muci,sigmaci] = normfit()

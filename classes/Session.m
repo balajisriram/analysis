@@ -1243,11 +1243,13 @@ classdef Session
             colorbar
         end
         
-        function fr = firingRates(sess)
-            allUnits = sess.collateUnits;
-            fr(sess.numUnits) = nan;
+        % getAllFiringRates
+        function fr = getAllFiringRates(sess)
+            [allUnits, ident] = sess.collateUnits;
+            fr.ident = ident;
+            fr.firingRates(sess.numUnits) = nan;
             for i = 1:length(allUnits)
-                fr(i) = allUnits(i).firingRate;
+                fr.firingRates(i) = allUnits(i).firingRate;
             end
         end
         
@@ -1298,6 +1300,13 @@ classdef Session
         function out = getCovariance(sess,dT)
             
             
+        end
+        
+        function out = getFeature(sess,feature)
+            switch feature
+                case 'firingRate'
+                    out = sess.getAllFiringRates();
+            end
         end
     end
     methods % Manipulating the history
