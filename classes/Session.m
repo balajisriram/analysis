@@ -823,6 +823,72 @@ classdef Session
             end
         end
         
+        function out = getAllWaveforms(sess)
+            numUnits = sess.numUnits;
+            [allUnits,ident] = sess.collateUnits;
+            out.waveformM = cell(1,numUnits);
+            out.waveformSD = out.waveformM;
+            for i = 1:length(allUnits)
+                [out.waveformM{i}, out.waveformSD{i}]= allUnits(i).getAvgWaveform;
+            end
+            out.ident = ident;
+        end
+        
+        function out = getAllISIs(sess)
+            numUnits = sess.numUnits;
+            [allUnits,ident] = sess.collateUnits;
+            out.ISIs = cell(1,numUnits);
+            
+            for i = 1:length(allUnits)
+                out.ISIs{i} = allUnits(i).ISI;
+            end
+            out.ident = ident;
+        end
+        
+        function out = getAllFWAtZeros(sess)
+            numUnits = sess.numUnits;
+            [allUnits,ident] = sess.collateUnits;
+            out.FWAt0s = cell(1,numUnits);
+            
+            for i = 1:length(allUnits)
+                out.FWAt0s{i} = allUnits(i).FWAtZero;
+            end
+            out.ident = ident;
+        end
+        
+        function out = getAllFWHMs(sess)
+            numUnits = sess.numUnits;
+            [allUnits,ident] = sess.collateUnits;
+            out.FWHMs = cell(1,numUnits);
+            
+            for i = 1:length(allUnits)
+                out.FWHMs{i} = allUnits(i).FWHM;
+            end
+            out.ident = ident;
+        end
+        
+        function out = getAllPeakToTroughs(sess)
+            numUnits = sess.numUnits;
+            [allUnits,ident] = sess.collateUnits;
+            out.PeakToTroughs = cell(1,numUnits);
+            
+            for i = 1:length(allUnits)
+                out.PeakToTroughs{i} = allUnits(i).getPeakToTrough;
+            end
+            out.ident = ident;
+        end
+        
+        function out = getAllNumChans(sess)
+            numUnits = sess.numUnits;
+            [allUnits,ident] = sess.collateUnits;
+            out.NumChans = cell(1,numUnits);
+            
+            for i = 1:length(allUnits)
+                out.NumChans{i} = allUnits(i).numChans;
+            end
+            out.ident = ident;
+        end
+        
         function out = getReport(sess)
             numTrodes = sess.numTrodes();
             % get the autonomous details for each trode
@@ -1304,8 +1370,20 @@ classdef Session
         
         function out = getFeature(sess,feature)
             switch feature
-                case 'firingRate'
+                case 'FiringRate'
                     out = sess.getAllFiringRates();
+                case 'Waveforms'
+                    out = sess.getAllWaveforms();
+                case 'ISIs'
+                    out = sess.getAllISIs();
+                case 'FWAt0s'
+                    out = sess.getAllFWAtZeros();
+                case 'FWHMs'
+                    out = sess.getAllFWHMs();
+                case 'PeakToTroughs'
+                    out = sess.getAllPeakToTroughs();
+                case 'NumChans'
+                    out = sess.getAllNumChans();
             end
         end
     end
