@@ -1,6 +1,9 @@
 % This script loops over sessions and creates figures about 
 % (1) Firing rates of neurons
 % (2) Statistics of ISI
+% (3) Waveforms (mean+sd)
+% (4) Number of Channels
+% (5) Different ways to characterize the waveforms FW at 0, FWHM, PK2TROUGH
 
 clear all;
 loc = '/media/ghosh/My Passport/workingSessions';
@@ -92,7 +95,7 @@ for j = 1:length(d)
     
 end
 
-save('Details.mat','MEANFIRINGRATE','ISI','WAVEFORMS','NUMCHANS','FWAT0','FWHM')
+save('Details.mat','MEANFIRINGRATE','ISI','WAVEFORMS','NUMCHANS','FWAT0','FWHM','PK2TROUGHS')
 
 % firingRates = [];
 % for j = 1:length(MEANFIRINGRATE)
