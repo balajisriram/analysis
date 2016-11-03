@@ -58,7 +58,6 @@ classdef Session
             sess.history{end+1} = sprintf('Initialized session @ %s',datestr(sess.timeStamp,21));
         end
         
-        
         % detects and sorts spikes, as well as gets event data for a
         % session. The root method call.
         function session = process(session, mappings) 
@@ -1023,6 +1022,14 @@ classdef Session
             orsThatStep = orientations(whichStep);
             ORs = unique(orsThatStep);
             
+            durs = [sD.maxDuration];
+            dursThatStep = durs(whichStep);
+            DursUniq = unique(dursThatStep);
+            
+            if length(DursUniq)>1
+                error('hmm whats the issue here');
+            end
+            
             tuning.ors = ORs;
             tuning.trials = cell(size(ORs));
             for i = 1:length(ORs)
@@ -1031,9 +1038,9 @@ classdef Session
             end
             
             tuning.spiking = cell(size(ORs));
-            timerange = [-0.1 1];
+            timerange = [-0.1 DursUniq/60+0.2];
             for i = 1:length(ORs)
-                tuning.spiking{i} = unit.getRaster(sess.getStimStartTime(tuning.trials{i}),timerange);
+                tuning.spiking{i} = unit.getRaster(sess.getFrameStartTime(tuning.trials{i}),timerange);
             end
             
             for i = 1:length(ORs)
@@ -1055,6 +1062,49 @@ classdef Session
             end
             
             
+        end
+        
+        function tuning = getSubsampleORTuning(sess,unit)
+            % need to get the data for 'gratings'
+            whichStep = strcmp({sess.trialDetails.stepName},'gratings');
+            
+            trNum = [sess.trialDetails.trialNum];trNumThatStep = trNum(whichStep);
+            tD = sess.trialDetails; sD = [tD.stimDetails];
+
+            orientations = [sD.orientations];
+            orsThatStep = orientations(whichStep);
+            ORs = unique(orsThatStep);
+            
+            durs = [sD.maxDuration];
+            dursThatStep = durs(whichStep);
+            DursUniq = unique(dursThatStep);
+            
+            if length(DursUniq)>1
+                error('hmm whats the issue here');
+            end
+            
+            tuning.ors = ORs;
+            tuning.subsamples = cell(size(trNumThatStep));
+            for j = 1:length(trNumThatStep)
+                trNumThatStepThatSubsample = setdiff(trNumThatStep,trNumThatStep(j)); % remove one trial at a time
+                
+                tuning.subsample{j}.trials = cell(size(ORs));
+                for i = 1:length(ORs)
+                    whichThatOR = trNumThatStepThatSubsample==ORs(i);
+                    tuning.subsamples{j}.trials{i} = trNumThatStep(whichThatOR);
+                end 
+                
+                tuning.subsample{j}.spiking = cell(size(ORs));
+                timerange = [-0.1 DursUniq/60+0.2];
+                for i = 1:length(ORs)
+                    tuning.subsamples{j}.spiking{i} = unit.getRaster(sess.getFrameStartTime(tuning.subsamples{j}.trials{i}),timerange);
+                end
+                
+                for i = 1:length(ORs)
+                    tuning.subsamples{j}.rasters(i) = Raster(tuning.subsamples{j}.trials{i},tuning.subsamples{j}.spiking{i},timerange);
+                    tuning.subsamples{j}.frs(i) = tuning.subsamples{j}.rasters(i).getFiringRate;
+                end
+            end
         end
         
         function plotORTuning(sess,unit,ax)
@@ -1115,6 +1165,18 @@ classdef Session
                 startTime = startTimeInEventDataStim(trialsInEventDataStim==trials(i));
                 if ~isempty(startTime)
                     out(i) = startTime;
+                end
+            end
+        end
+        
+        function out = getFrameStartTime(sess,trials)
+            trialsInEventDataFrame = [sess.eventData.frame.trialNumber];
+            startTimeInEventDataFrame = {sess.eventData.frame.start};
+            out = nan(size(trials));
+            for i = 1:length(trials)
+                startTime = startTimeInEventDataFrame{trialsInEventDataFrame==trials(i)};
+                if ~isempty(startTime)
+                    out(i) = startTime(2); % first frame is always empty
                 end
             end
         end
@@ -1209,7 +1271,10 @@ classdef Session
             end
         end
         
-        function out = getOSI(sess,u)
+        function out = getOSI(sess,u,subsample)
+            if ~exist('subsample','var')||isempty(subsample)
+                subsample = false;
+            end
             tuning = sess.getORTuning(u);
             ors = pi/2-tuning.ors;
             m = [tuning.frs.m];
@@ -1238,12 +1303,16 @@ classdef Session
                 orForMax = ors(whichMax);
                 orForOrth = orForMax+pi/2;
                 
-                whichOrth = ORS==orForOrth;
+                whichOrth = abs(ORS-orForOrth)<pi/20;
                 orthm = M(whichOrth);
                 
                 out = (maxm-orthm)/(maxm+orthm);
             catch ex
                 keyboard
+            end
+            
+            if subsample
+                subsTuning = sess.getSubsampleORTuning(u);
             end
         end
         
@@ -1384,6 +1453,9 @@ classdef Session
                     out = sess.getAllPeakToTroughs();
                 case 'NumChans'
                     out = sess.getAllNumChans();
+                case 'OSIs'
+                    out = sess.getAllOSI();
+                case 'OSIAndFiringRates'
             end
         end
     end

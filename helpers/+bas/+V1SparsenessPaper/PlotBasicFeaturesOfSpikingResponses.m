@@ -135,7 +135,7 @@ for i = 1:length(FWHM)
     fwhms = [fwhms cellfun(@(x) x(1),temp)];
 end
 f = figure;
-ax = subplot(2,2,1);
+ax = subplot(2,2,1);inb
 plot(fwhms, frs,'k.'); xlabel('FWHM (ms)');ylabel('Firing Rate (Hz)');
 
 subplot(2,2,2);
