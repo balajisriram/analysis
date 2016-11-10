@@ -1027,6 +1027,7 @@ classdef Session
             DursUniq = unique(dursThatStep);
             
             if length(DursUniq)>1
+                keyboard
                 error('hmm whats the issue here');
             end
             
@@ -1083,28 +1084,33 @@ classdef Session
                 error('hmm whats the issue here');
             end
             
-            tuning.ors = ORs;
             tuning.subsamples = cell(size(trNumThatStep));
             for j = 1:length(trNumThatStep)
+                fprintf('%d.',j);
+                tuning.subsamples{j}.ors = ORs;
                 trNumThatStepThatSubsample = setdiff(trNumThatStep,trNumThatStep(j)); % remove one trial at a time
+                whichTrialsIncluded = ismember(trNumThatStep,trNumThatStepThatSubsample);
+                orsThatStepThatSubsample = orsThatStep(whichTrialsIncluded);
                 
-                tuning.subsample{j}.trials = cell(size(ORs));
+                tuning.subsamples{j}.trials = cell(size(ORs));
                 for i = 1:length(ORs)
-                    whichThatOR = trNumThatStepThatSubsample==ORs(i);
-                    tuning.subsamples{j}.trials{i} = trNumThatStep(whichThatOR);
+                    whichThatOR = orsThatStepThatSubsample==ORs(i);
+                    tuning.subsamples{j}.trials{i} = trNumThatStepThatSubsample(whichThatOR);
                 end 
                 
-                tuning.subsample{j}.spiking = cell(size(ORs));
+                tuning.subsamples{j}.spiking = cell(size(ORs));
                 timerange = [-0.1 DursUniq/60+0.2];
                 for i = 1:length(ORs)
                     tuning.subsamples{j}.spiking{i} = unit.getRaster(sess.getFrameStartTime(tuning.subsamples{j}.trials{i}),timerange);
                 end
-                
+%                 tuning.subsamples{j}.rasters = cell(size(ORs));
+%                 tuning.subsamples{j}.frs = cell(size(ORs));
                 for i = 1:length(ORs)
                     tuning.subsamples{j}.rasters(i) = Raster(tuning.subsamples{j}.trials{i},tuning.subsamples{j}.spiking{i},timerange);
                     tuning.subsamples{j}.frs(i) = tuning.subsamples{j}.rasters(i).getFiringRate;
                 end
             end
+            fprintf('\n')
         end
         
         function plotORTuning(sess,unit,ax)
@@ -1271,48 +1277,18 @@ classdef Session
             end
         end
         
-        function out = getOSI(sess,u,subsample)
+        function [out, outsubs] = getOSI(sess,u,subsample)
             if ~exist('subsample','var')||isempty(subsample)
                 subsample = false;
             end
             tuning = sess.getORTuning(u);
-            ors = pi/2-tuning.ors;
-            m = [tuning.frs.m];
-            which1 = ors==pi;
-            which2 = ors==0;
-            m(which2) = mean([m(which1) m(which2)]);
-            m(which1) = [];
-            ors(which1) = [];
-            if isempty(m) || all(m==0)
-                out = nan;
-                return
-            end
-            try
-                % replicate
-                ORS = [ors+pi ors];
-                M = [m m];
-                
-                % get the OSI of this transformed data
-                % get the max of m and corr OR
-                whichMax = m==max(m);
-                if length(find(whichMax))>1
-                    temp = find(whichMax);
-                    whichMax(temp(2:end)) = 0;
-                end
-                maxm = max(m);
-                orForMax = ors(whichMax);
-                orForOrth = orForMax+pi/2;
-                
-                whichOrth = abs(ORS-orForOrth)<pi/20;
-                orthm = M(whichOrth);
-                
-                out = (maxm-orthm)/(maxm+orthm);
-            catch ex
-                keyboard
-            end
-            
+            out = Session.calculateOSI(tuning);
+            outsubs = [];
             if subsample
                 subsTuning = sess.getSubsampleORTuning(u);
+                for j = 1:length(subsTuning.subsamples)
+                    outsubs(j) = Session.calculateOSI(subsTuning.subsamples{j});
+                end
             end
         end
         
@@ -1326,23 +1302,61 @@ classdef Session
             end
         end
         
-        function [str, ang] = getOrVector(sess,u)
+        function out = getAllOSIWithJackKnife(sess)
+            numUnits = sess.numUnits;
+            [allUnits, ident] = sess.collateUnits;
+            out.OSI = nan(1,numUnits);
+            out.OSISubsample = cell(1,numUnits);
+            out.ident = ident;
+            for i = 1:numUnits
+                fprintf('%d/%d::',i,numUnits);
+                subsample = true;
+                [out.OSI(i), out.OSISubsample{i}] = sess.getOSI(allUnits(i),subsample);
+            end
+        end
+        
+        function [out, outsubs] = getOrVector(sess,u,subsample)
+            if ~exist('subsample','var')||isempty(subsample)
+                subsample = false;
+            end
             tuning = sess.getORTuning(u);
             ors = pi/2-tuning.ors;
             m = [tuning.frs.m];
-            [str, ang] = sess.getVectorSum(ors,m);
+            [out.str, out.ang] = sess.getVectorSum(ors,m);
+            outsubs = [];
+            if subsample
+                subsTuning = sess.getSubsampleORTuning(u); 
+                for j = 1:length(subsTuning.subsamples)
+                    ors = pi/2-subsTuning.subsamples{j}.ors;
+                    m = [subsTuning.subsamples{j}.frs.m];
+                    [outsubs(j).str, outsubs(j).ang] = Session.getVectorSum(ors,m);
+                end
+            end
         end
         
         function out = getAllOrVectors(sess)
             numUnits = sess.numUnits;
             [allUnits, ident] = sess.collateUnits;
-            out.strength = nan(1,numUnits);
-            out.angle = nan(1,numUnits);
             out.ident = ident;
+            out.vectors(numUnits) = [];
             for i = 1:numUnits
-                [out.strength(i), out.angle(i)]= sess.getOrVector(allUnits(i));
+                out.vectors(i) = sess.getOrVector(allUnits(i));
             end
         end
+        
+        function out = getAllOrVectorsWithJackKnife(sess)
+            numUnits = sess.numUnits;
+            [allUnits, ident] = sess.collateUnits;
+            out.vectors = cell(1,numUnits);
+            out.vectorsJackKnife = cell(1,numUnits);
+            out.ident = ident;
+            for i = 1:numUnits
+                fprintf('%d/%d::',i,numUnits);
+                subsample = true;
+                [out.vectors{i}, out.vectorsJackKnife{i}]= sess.getOrVector(allUnits(i),subsample);
+            end
+        end
+        
         
         % units
         function spikeShapeCorr(sess)
@@ -1455,7 +1469,10 @@ classdef Session
                     out = sess.getAllNumChans();
                 case 'OSIs'
                     out = sess.getAllOSI();
-                case 'OSIAndFiringRates'
+                case 'OSIsWithJackKnife'
+                    out = sess.getAllOSIWithJackKnife();
+                case 'OrientedVectorWithJackKnife'
+                    out = sess.getAllOrVectorsWithJackKnife();
             end
         end
     end
@@ -1674,6 +1691,42 @@ classdef Session
             Session.checkOrientationTuningModel(f,f0,tMax,dt,ax,'b');
         end
         
-        
+        function osi = calculateOSI(tuning)
+            ors = pi/2-tuning.ors; % bacuse 0 is vertical and pi/2 is right horizontal
+            m = [tuning.frs.m];
+            which1 = abs(ors-pi)<pi/100; % arbitrary amount!
+            which2 = abs(ors-0)<pi/100; % arbitrary amount xxx
+            m(which2) = mean([m(which1) m(which2)]);
+            m(which1) = [];
+            ors(which1) = [];
+            if isempty(m) || all(m==0)
+                osi = nan;
+                return
+            end
+            try
+                % replicate
+                ORS = [ors+pi ors];
+                M = [m m];
+                
+                % get the OSI of this transformed data
+                % get the max of m and corr OR
+                whichMax = m==max(m);
+                if length(find(whichMax))>1
+                    temp = find(whichMax);
+                    whichMax(temp(2:end)) = 0;
+                end
+                maxm = max(m);
+                orForMax = ors(whichMax);
+                orForOrth = orForMax+pi/2;
+                
+                whichOrth = abs(ORS-orForOrth)<pi/20;
+                orthm = M(whichOrth);
+                
+                osi = (maxm-orthm)/(maxm+orthm);
+            catch ex
+                getReport(ex)
+                keyboard
+            end
+        end
     end
 end

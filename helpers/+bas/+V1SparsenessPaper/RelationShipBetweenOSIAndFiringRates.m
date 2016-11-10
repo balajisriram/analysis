@@ -16,7 +16,7 @@ for j = 1:length(d)
     % firing Rates and OSI
     try
         fr = sess.getFeature('FiringRate');
-        osi = sess.getFeature('OSIs');
+        osi = sess.getFeature('OSIsWithJackKnife');
     catch ex
         getReport(ex)
         fr = [];
@@ -29,13 +29,29 @@ end
 
 save('Details.mat','DETAILS');
 
-%% 
+%% Get the Various features
 OSIs = [];
 FRs = [];
+
+OSIMEANS = [];
+OSISDs = [];
+OSILEN = [];
+OSIMINs = [];
+OSIMAXs = [];
+OSICILO = [];
+OSICIHI = [];
 for i = 1:length(DETAILS)
     if isfield(DETAILS{i}{2},'OSI')
         OSIs = [OSIs DETAILS{i}{2}.OSI];
         FRs = [FRs DETAILS{i}{1}.firingRates];
+        
+        OSIMEANS = [OSIMEANS cellfun(@nanmean,DETAILS{i}{2}.OSISubsample)];
+        OSISDs = [OSISDs cellfun(@nanstd,DETAILS{i}{2}.OSISubsample)];
+        OSILEN = [OSILEN cellfun(@length,DETAILS{i}{2}.OSISubsample)];
+        OSIMINs = [OSIMINs cellfun(@min,DETAILS{i}{2}.OSISubsample)];
+        OSIMAXs = [OSIMAXs cellfun(@max,DETAILS{i}{2}.OSISubsample)];
+        OSICILO = [OSICILO cellfun(@(x) quantile(x,0.025),DETAILS{i}{2}.OSISubsample)];
+        OSICIHI = [OSICIHI cellfun(@(x) quantile(x,0.975),DETAILS{i}{2}.OSISubsample)];
     end
 end
 
@@ -50,41 +66,46 @@ ylabel('# units');
 ax = axes;
 h = scatter(log10(FRs),OSIs);
 
-% firingRates = [];
-% for j = 1:length(MEANFIRINGRATE)
-%     if ~isempty(MEANFIRINGRATE{j})
-%     firingRates = [firingRates MEANFIRINGRATE{j}.firingRates];
-%     end
-% end
-% 
-% f = figure;
-% f.Position = [-1566 476 1109 420];
-% ax = subplot(1,2,1);
-% [count, centers] = hist(firingRates,40);
-% b = bar(centers,count);
-% b.EdgeColor = 'none';
-% b.FaceColor = [0.5, 0.5, 0.5];
-% 
-% ax = subplot(1,2,2); hold on;
-% [count,centers] = hist(log10(firingRates),40);
-% b = bar(centers,count);
-% b.EdgeColor = 'none';
-% b.FaceColor = [0.5, 0.5, 0.5];
-% 
-% ax.XTick = [log10(0.01:0.01:0.1) log10(0.2:0.1:1) log10(2:1:10) log10(20:10:100)];
-% ax.XTickLabel = {};
-% 
-% Labels = {'0.01'}; for i = 1:8, Labels{end+1} = ''; end
-% Labels{end+1} = '0.1'; for i = 1:8, Labels{end+1} = '';end
-% Labels{end+1} = '1'; for i = 1:8,Labels{end+1} = '';end
-% Labels{end+1} = '10';for i = 1:8,Labels{end+1} = '';end
-% Labels{end+1} = '100';
-% ax.XTickLabel = Labels;
-% %% 
-% x = -10:0.01:10;
-% y1 = exp(-(x+6).^2/4); y1 = y1/sum(y1);
-% y2 = exp(-(x-2).^2/10);y2 = y2/sum(y2);
-% plot(x,y1,x,y2,x,y1+y2);
-% 
-% 
-% obj = fitgmdist(log10(firingRates'),2)
+%% plots about reliability of OSIS
+f = figure;
+ax = axes;
+
+hold on
+[sortedOSI,order]  = sort(OSIs);
+
+for i = 1:length(sortedOSI)
+    plot([OSICILO(order(i)) OSICIHI(order(i))],[i i],'k');
+    if (OSIs(order(i))> OSICILO(order(i))) && (OSIs(order(i))< OSICIHI(order(i)))
+        plot(OSIs(order(i)),i,'b.');
+    else
+        plot(OSIs(order(i)),i,'r.');
+    end
+%     plot(OSIMEANS(order(i)),i,'b.');
+end
+axis tight
+
+%% create rules about inclusion criteria
+rule1 = ~isnan(OSIs) & ~isnan(FRs) & ~isnan(OSIMEANS) & ~isnan(OSISDs) & ~isnan(OSICILO) & ~isnan(OSICIHI);
+rule2 = (OSICIHI-OSICILO)<0.2;
+rule3 = FRs<10;
+OSIs1 = OSIs(rule1 & rule2 & rule3);
+OSICILO1 = OSICILO(rule1 & rule2 & rule3);
+OSICIHI1 = OSICIHI(rule1 & rule2 & rule3);
+
+
+f = figure;
+ax = axes;
+
+hold on
+[sortedOSI,order]  = sort(OSIs1);
+
+for i = 1:length(sortedOSI)
+    plot([OSICILO1(order(i)) OSICIHI1(order(i))],[i i],'k');
+    if (OSIs1(order(i))> OSICILO1(order(i))) && (OSIs1(order(i))< OSICIHI1(order(i)))
+        plot(OSIs1(order(i)),i,'b.');
+    else
+        plot(OSIs1(order(i)),i,'r.');
+    end
+%     plot(OSIMEANS(order(i)),i,'b.');
+end
+axis tight
