@@ -1451,6 +1451,108 @@ classdef Session
             
         end
         
+        function out = getSpikeAndStimDetails(sess)
+            trNums = [];
+            nominalStimDurations = [];
+            actualStimDurations = [];
+            contrasts = [];
+            orientations = [];
+            
+            spikeNumsNominal = [];
+            spikeNumsActual = [];
+            
+            spikeRatesNominal = [];
+            spikeRatesActual = [];
+            
+            timeToFirstSpike = [];            
+            
+            units = sess.collateUnits();
+            
+            %check if it has gratings_LED
+            tD = sess.trialDetails;
+            temp = {tD.stepName};
+            whichEmpty = find(cellfun(@isempty, temp));
+            for i = 1:length(whichEmpty)
+                temp{whichEmpty(i)} = 'none';
+            end
+            
+            hasGratingsLED = ismember('gratings_LED',unique(temp));
+            if hasGratingsLED
+                stepNameToLookFor = 'gratings_LED';
+            else
+                stepNameToLookFor = 'gratings';
+            end
+            
+            % loop through the trials
+            for i = sess.minTrialNum:sess.maxTrialNum
+                % look for the stepName
+                which = [tD.trialNum]==i;
+                dets = tD(which);
+                if isempty(dets) || ~strcmp(dets.stepName,stepNameToLookFor)
+                    continue;
+                end
+                
+                trNums = [trNums;i];
+                
+                whichTrialInFrame = [sess.eventData.frame.trialNumber]==i;
+                frameRecord = sess.eventData.frame(whichTrialInFrame);
+                
+                if length(frameRecord) ~=1 || isempty(frameRecord.start)
+                    nominalStimDurations = [nominalStimDurations;NaN];
+                    actualStimDurations = [actualStimDurations;NaN];
+                    contrasts = [contrasts;NaN];
+                    orientations = [orientations;NaN];
+                    spikeNumsNominal = [spikeNumsNominal;nan(1,sess.numUnits)];
+                    spikeNumsActual = [spikeNumsActual;nan(1,sess.numUnits)];
+%                     spikeRatesNominal = [spikeRatesNominal;nan(1,sess.numUnits)];
+%                     spikeRatesActual = [spikeRatesActual;nan(1,sess.numUnits)];
+                    timeToFirstSpike = [timeToFirstSpike;nan(1,sess.numUnits)];
+                    fprintf('issue with trial:%d\n',i);
+                    continue
+                end
+                
+                nominalStimDurations = [nominalStimDurations; dets.stimDetails.maxDuration];
+                actualStimDurations = [actualStimDurations;frameRecord.start(end)-frameRecord.start(2)];
+                contrasts = [contrasts;dets.stimDetails.contrasts];
+                orientations = [orientations;dets.stimDetails.orientations];
+                
+                stimStartTime = frameRecord.start(2);
+                windowNominal = [0 (dets.stimDetails.maxDuration/60)+0.1];
+                windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+0.1]; % adding 100 ms to stimulus
+                
+                unitSpikesNominal = cell(1,sess.numUnits);
+                unitSpikesActual = cell(1,sess.numUnits);
+                timeToFirstSpikeThisTrial = nan(1,sess.numUnits);
+                for j = 1:sess.numUnits
+                    unitSpikesNominal(j) = units(j).getRaster(stimStartTime,windowNominal);
+                    unitSpikesActual(j) = units(j).getRaster(stimStartTime,windowActual);
+                    timeToFirstSpikeThisTrial(j) = units(j).timeToFirstSpike(stimStartTime);
+                end
+                spikeNumsNominal = [spikeNumsNominal; cellfun(@length,unitSpikesNominal)];
+                spikeNumsActual = [spikeNumsActual; cellfun(@length,unitSpikesActual)];    
+                
+                timeToFirstSpike = [timeToFirstSpike;timeToFirstSpikeThisTrial];
+            end
+%             try
+                spikeRatesNominal = spikeNumsNominal./repmat(nominalStimDurations/60,1,sess.numUnits);
+                spikeRatesActual = spikeNumsActual./repmat(actualStimDurations,1,sess.numUnits);
+% %             catch
+% %                 keyboard
+% %             end
+            out.trNums = trNums;
+            out.nominalStimDurations = nominalStimDurations;
+            out.actualStimDurations = actualStimDurations;
+            out.contrasts = contrasts;
+            out.orientations = orientations;
+            out.spikeNumsNominal = spikeNumsNominal;
+            out.spikeNumsActual = spikeNumsActual;
+            out.spikeRatesNominal = spikeRatesNominal;
+            out.spikeRatesActual = spikeRatesActual;
+            out.timeToFirstSpike = timeToFirstSpike;
+            
+%              keyboard
+        end
+        
         function out = getFeature(sess,feature)
             switch feature
                 case 'FiringRate'
@@ -1473,6 +1575,8 @@ classdef Session
                     out = sess.getAllOSIWithJackKnife();
                 case 'OrientedVectorWithJackKnife'
                     out = sess.getAllOrVectorsWithJackKnife();
+                case 'SpikeAndStimDetails'
+                    out = sess.getSpikeAndStimDetails();
             end
         end
     end

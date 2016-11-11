@@ -326,6 +326,16 @@
             end
         end
         
+        function out = timeToFirstSpike(u,time)
+            temp = u.timestamp-time;
+            which = find(temp>0,1,'first');
+            if isempty(which)
+                out = NaN;
+            else
+                out = temp(which);
+            end
+        end
+        
         function [m,s] = getFlatWaveForm(u)
             [m, s] = u.getAvgWaveform;
             % remove the extra dims first
