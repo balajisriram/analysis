@@ -137,5 +137,6 @@ fits = cell(size(spR,2),1);
 for i = 1:size(spR,2);
     fits{i} = fitglm(spR(whichTrain,i),stimPresent(whichTrain),'linear','Distribution','poisson');
 end
-%%
-FITALL = stepwiseglm(spR,stimPresent,'constant','Upper','linear','Distribution','poisson');
+%% predict orientation of stimulus
+
+FITALL = stepwiseglm(spR,stimPresent,'constant','Upper','linear','Distribution','binomial');
