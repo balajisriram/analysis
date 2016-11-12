@@ -120,3 +120,22 @@ violin({spikeRateZeroContrast,...
 
 errorbar([mean(spikeRateZeroContrast) mean(spikeRateLoContrast) mean(spikeRateHiContrast)],...
     [std(spikeRateZeroContrast) std(spikeRateLoContrast) std(spikeRateHiContrast)]);
+
+%% make prediction using fitglm
+% do it for DETAILS{1}
+
+or = DETAILS{1}{1}.orientations;
+c = DETAILS{1}{1}.contrasts;
+spR = DETAILS{1}{1}.spikeRatesActual;
+
+stimPresent = double(c>0);
+
+
+% predict presence or absence of stimulus
+whichTrain = rand(size(stimPresent))<0.7;
+fits = cell(size(spR,2),1);
+for i = 1:size(spR,2);
+    fits{i} = fitglm(spR(whichTrain,i),stimPresent(whichTrain),'linear','Distribution','poisson');
+end
+%%
+FITALL = stepwiseglm(spR,stimPresent,'constant','Upper','linear','Distribution','poisson');
