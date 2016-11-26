@@ -15,15 +15,18 @@ for j = 1:length(d)
     % firing Rates and OSI
     try
         spikeDetails = sess.getFeature('SpikeAndStimDetails');
+        osi = sess.getFeature('OSIs');
     catch ex
         getReport(ex)
         spikeDetails = [];
+        osi = [];
     end
     spikeDetails.sessionName = d(j).name;
-    DETAILS{end+1} = {spikeDetails};
+    osi.sessionName = d(j).name;
+    DETAILS{end+1} = {spikeDetails,osi};
 end
 % 
-save('Details_SpikeDetails.mat','DETAILS');
+save('Details_SpikeANDOSIDetails.mat','DETAILS');
 %%
 for i = 1:length(DETAILS)
 DETAILS{i}{1}.spikeNumsActual

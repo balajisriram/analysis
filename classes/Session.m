@@ -1451,7 +1451,10 @@ classdef Session
             
         end
         
-        function out = getSpikeAndStimDetails(sess)
+        function out = getSpikeAndStimDetails(sess,interval)
+            if ~exist('interval','var')||isempty(interval)
+                interval = 0.1;
+            end
             trNums = [];
             nominalStimDurations = [];
             actualStimDurations = [];
@@ -1517,8 +1520,8 @@ classdef Session
                 orientations = [orientations;dets.stimDetails.orientations];
                 
                 stimStartTime = frameRecord.start(2);
-                windowNominal = [0 (dets.stimDetails.maxDuration/60)+0.1];
-                windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+0.1]; % adding 100 ms to stimulus
+                windowNominal = [0 (dets.stimDetails.maxDuration/60)+interval];
+                windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+interval]; % adding 100 ms to stimulus
                 
                 unitSpikesNominal = cell(1,sess.numUnits);
                 unitSpikesActual = cell(1,sess.numUnits);
@@ -1577,6 +1580,18 @@ classdef Session
                     out = sess.getAllOrVectorsWithJackKnife();
                 case 'SpikeAndStimDetails'
                     out = sess.getSpikeAndStimDetails();
+                case 'SpikeAndStimDetails0'
+                    out = sess.getSpikeAndStimDetails(0);
+                case 'SpikeAndStimDetails50'
+                    out = sess.getSpikeAndStimDetails(0.05);
+                case 'SpikeAndStimDetails100'
+                    out = sess.getSpikeAndStimDetails(0.1);
+                case 'SpikeAndStimDetails200'
+                    out = sess.getSpikeAndStimDetails(0.2);
+                case 'SpikeAndStimDetails500'
+                    out = sess.getSpikeAndStimDetails(0.5);
+                case 'SpikeAndStimDetails1000'
+                    out = sess.getSpikeAndStimDetails(1);
             end
         end
     end
