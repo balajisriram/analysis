@@ -20,7 +20,7 @@ for i = setdiff(1:length(DETAILS),[7,9,10,11,17,35])
     
     whichNonZeroC = c>0;
     
-    numTests = 100;
+    numTests = 25;
     fitsThisSession = cell(1,numTests);
     fprintf('test:')
     for j = 1:numTests

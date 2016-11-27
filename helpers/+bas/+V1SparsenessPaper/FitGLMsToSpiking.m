@@ -42,7 +42,7 @@ for i = setdiff(1:length(DETAILS),[7,9,10,11,17,35])
             mdl = fitglm(XTrain(:,k),YTrain,'Distribution','binomial');
             IndividualModels{k}.Model = mdl;
             IndividualModels{k}.YPred = mdl.feval(XTest(:,k));
-            IndividualModels{k}.PredictionAccuracy = sum(fit.YTest==IndividualModels{k}.YPred)/length(fit.YTest);
+            IndividualModels{k}.PredictionAccuracy = sum(fit.YTest==(IndividualModels{k}.YPred>0.5))/length(fit.YTest);
         end
         fit.IndividualModels = IndividualModels;
         

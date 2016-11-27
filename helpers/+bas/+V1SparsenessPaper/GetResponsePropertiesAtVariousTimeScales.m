@@ -2,7 +2,8 @@
 % (1)  'gratings_LED'
 
 clear all;
-loc = 'F:\workingSessionsnoWaveform';
+%loc = 'F:\workingSessionsnoWaveform';
+loc = '/media/ghosh/My Passport/workingSessionsNoWaveform';
 d = dir(fullfile(loc,'*.mat'));
 
 DETAILS = {};
@@ -20,7 +21,7 @@ for j = 1:length(d)
         spikeDetails200 = sess.getFeature('SpikeAndStimDetails200');
         spikeDetails500 = sess.getFeature('SpikeAndStimDetails500');
         spikeDetails1000 = sess.getFeature('SpikeAndStimDetails1000');
-        osi = sess.getFeature('OSIs');
+%         osi = sess.getFeature('OSIs');
     catch ex
         getReport(ex)
         spikeDetails0 = [];
@@ -29,7 +30,7 @@ for j = 1:length(d)
         spikeDetails200 = [];
         spikeDetails500 = [];
         spikeDetails1000 = [];
-        osi = [];
+%         osi = [];
     end
     spikeDetails0.sessionName = d(j).name;
     spikeDetails50.sessionName = d(j).name;
@@ -38,7 +39,10 @@ for j = 1:length(d)
     spikeDetails500.sessionName = d(j).name;
     spikeDetails1000.sessionName = d(j).name;
     
-    osi.sessionName = d(j).name;
+%     osi.sessionName = d(j).name;
     
-    DETAILS{end+1} = {spikeDetails,osi};
+    DETAILS{end+1} = {spikeDetails0,spikeDetails50,...
+        spikeDetails100,spikeDetails200,spikeDetails500,...
+        spikeDetails1000};
 end
+save('DetailsAtVariousTimescales.mat','DETAILS');
