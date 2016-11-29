@@ -1,4 +1,4 @@
-function ResponseHist = CreateResponseHistogramsForAllNeurons
+function AllNeurons = CreateResponseHistogramsForAllNeurons
 if ~exist('DETAILS','var')
     load('Details_SpikeDetails')
 end
@@ -6,9 +6,11 @@ end
 %% details on durations
 durs = [];
 ctrs = [];
+orns = [];
 for i = setdiff(1:length(DETAILS),[7,9,10,11,17,35])
     durs = [durs;DETAILS{i}{1}.actualStimDurations];
     ctrs = [ctrs;DETAILS{i}{1}.contrasts];
+    orns = [orns;DETAILS{i}{1}.orientations];
 end
 %% get the response histogram
 
@@ -30,74 +32,52 @@ for i = setdiff(1:length(DETAILS),[7,9,10,11,17,35])
     dur = DETAILS{i}{1}.actualStimDurations;
     spR = DETAILS{i}{1}.spikeRatesActual;
     
+    numNeurons = size(spR,2);
     
-    whichNonZeroC = c>0;
+    sessionHasContrasts = nan(1,size(contrastLimits,1));
+    sessionHasDurations = nan(1,size(durationLimits,1));
     
-    numTests = 100;
-    fitsThisSession = cell(1,numTests);
-    fprintf('test:')
-    for j = 1:numTests
-        fprintf('%d.',j);
-        % train 70%, test 30%. train only on c>0
-        whichTrain = whichNonZeroC & rand(size(whichNonZeroC))<0.7;
-        whichTest = ~whichTrain;
-        
-        fit.trialsTrain = DETAILS{i}{1}.trNums(whichTrain);
-        fit.trialsTest = DETAILS{i}{1}.trNums(whichTest);
-        XTrain = spR(whichTrain,:);
-        XTest = spR(whichTest,:);
-        YTrain = stimToRight(whichTrain) +1; % Left = 1; Right = 2;
-        fit.YTest = stimToRight(whichTest)+1;
-        fit.cTest = c(whichTest);
-        fit.dTest = dur(whichTest);
-        % individual models
-        IndividualModels = cell(1,size(spR,2));
-        for k = 1:size(spR,2)
-            disp(k);
-            try
-                [mdl,dev,stats] = mnrfit(XTrain(:,k),YTrain);%,'Distribution','binomial');
-                IndividualModels{k}.Model = mdl;
-                IndividualModels{k}.Deviance = dev;
-                IndividualModels{k}.Stats = stats;
-                pihats = mnrval(mdl,XTest(:,k));
-                [~,choice] = max(pihats,[],2);
-                IndividualModels{k}.YPred = choice;
-                IndividualModels{k}.PredictionAccuracy = sum(fit.YTest==IndividualModels{k}.YPred)/length(fit.YTest);
-            catch ex
-                IndividualModels{k}.Model = [];
-                IndividualModels{k}.Deviance = [];
-                IndividualModels{k}.Stats = [];
-                IndividualModels{k}.YPred = [];
-                IndividualModels{k}.PredictionAccuracy = NaN;
+    for j = 1:length(sessionHasDurations)
+        sessionHasDurations(j) = any(dur>durationLimits(j,1) & dur<durationLimits(j,2));
+    end
+    
+    for j = 1:length(sessionHasContrasts)
+        sessionHasContrasts(j) = any(c>contrastLimits(j,1) & c<contrastLimits(j,2));
+    end
+    
+    
+    for j = 1:numNeurons
+        SpikeRateHistogram = cell(2,length(sessionHasDurations),length(sessionHasContrasts));
+        SpikeNumHistogram = SpikeRateHistogram;
+        SpikeTimeHistogram = SpikeRateHistogram;
+        whichLeftOr = (or<0 & or>-pi/2) | (or>pi/2 & or<pi);
+        for k = 1:length(sessionHasDurations)
+            for l = 1:length(sessionHasContrasts)
+                whichDurs = dur>durationLimits(k,1) & dur<durationLimits(k,2);
+                whichCtrs = c>contrastLimits(l,1) & c<contrastLimits(l,2);
+                
+                % left
+                SpikeRateHistogram{1,k,l} = DETAILS{i}{1}.spikeRatesActual(whichLeftOr & whichDurs & whichCtrs,j);
+                SpikeNumHistogram{1,k,l} = DETAILS{i}{1}.spikeNumsActual(whichLeftOr & whichDurs & whichCtrs,j);
+                SpikeTimeHistogram{1,k,l} = DETAILS{i}{1}.spikeRatesActual(whichLeftOr & whichDurs & whichCtrs,j);
+                
+                % right
+                SpikeRateHistogram{2,k,l} = DETAILS{i}{1}.spikeRatesActual(~whichLeftOr & whichDurs & whichCtrs,j);
+                SpikeNumHistogram{2,k,l} = DETAILS{i}{1}.spikeNumsActual(~whichLeftOr & whichDurs & whichCtrs,j);
+                SpikeTimeHistogram{2,k,l} = DETAILS{i}{1}.spikeRatesActual(~whichLeftOr & whichDurs & whichCtrs,j);
             end
         end
-        fit.IndividualModels = IndividualModels;
         
-        try
-            [mdl,dev,stats] = mnrfit(XTrain,YTrain);%,'constant','Upper','linear','Distribution','binomial');
-            FullModel.Model = mdl;
-            FullModel.Deviance = dev;
-            FullModel.Stats = stats;
-            
-            pihats = mnrval(mdl,XTest);
-            [~,choice] = max(pihats,[],2);
-            
-            FullModel.YPred = choice;
-            FullModel.PredictionAccuracy = sum(fit.YTest==choice)/length(fit.YTest);
-        catch ex
-            FullModel.Model = [];
-            FullModel.Deviance = [];
-            FullModel.Stats = [];
-            FullModel.YPred = [];
-            FullModel.PredictionAccuracy = NaN;
-        end
+        NeuronResponses.SpikeRateHistogram = SpikeRateHistogram;
+        NeuronResponses.SpikeNumHistogram = SpikeNumHistogram;
+        NeuronResponses.SpikeTimeHistogram = SpikeTimeHistogram;
+        NeuronResponses.HasContrasts = sessionHasContrasts;
+        NeuronResponses.HasDurations = sessionHasDurations;
+        NeuronResponses.SessionNumber = i;
         
-        fit.FullModel = FullModel;
-        
-        fitsThisSession{j} = fit;
+        AllNeurons{end+1} = NeuronResponses;
     end
-    fprintf('\n');
-    FIT_LOGISTIC_SPRATE{i} = fitsThisSession;
+       
 end
 
 end
