@@ -106,11 +106,31 @@ end
 figure;
 scatter(bestPerformingNeurons,sessionPerformance,'ko'); hold on
 axis equal
-plot([0.5 0.7],[0.5 0.7])
-figure;
+plot([0.5 0.7],[0.5 0.7]);
+xlabel('Best Performing Neuron');
+ylabel('Session Performance');
+
+%% 
+figure;hold on
 for i = 1:length(bestPerformingNeurons)
-    plot()
+    plot(numNeuronsThatSession(i),bestPerformingNeurons(i),'r^'); 
+    plot(numNeuronsThatSession(i),sessionPerformance(i),'gd'); 
+    
+    if sessionPerformance(i)>bestPerformingNeurons(i)
+        plot([numNeuronsThatSession(i) numNeuronsThatSession(i)],[bestPerformingNeurons(i) sessionPerformance(i)],'g');
+    else
+        plot([numNeuronsThatSession(i) numNeuronsThatSession(i)],[bestPerformingNeurons(i) sessionPerformance(i)],'r');
+    end
 end
+
+%%
+
+figure;
+subplot(2,1,1); scatter(numNeuronsThatSession,sessionPerformance,'ko');xlabel('#Neurons');ylabel('Session Performance');
+fit = polyfit(numNeuronsThatSession(~isnan(sessionPerformance)),sessionPerformance(~isnan(sessionPerformance)),1);
+plot([0 100],polyval(fit,[0 100]),'r--')
+
+subplot(2,1,2); scatter(numNeuronsThatSession,bestPerformingNeurons,'ko');xlabel('#Neurons');ylabel('Best Performance');
 
 %% Performance split by contrast
 
@@ -158,12 +178,20 @@ for i = 1:length(FIT_LOGISTIC)
             whichTrialThatContrast = (FIT_LOGISTIC{i}{j}.cTest==uniqueContrasts(ctr));
             resultsThatContrast = FIT_LOGISTIC{i}{j}.YTest(whichTrialThatContrast);
             for k = 1:numNeurons
-                predictionForThoseTrials = FIT_LOGISTIC{i}{j}.IndividualModels{k}.YPred(whichTrialThatContrast)>0.5;
-                PerformanceByContrastAll(k,ctr,i) = sum(predictionForThoseTrials==resultsThatContrast)/length(resultsThatContrast);
+                predictionForThoseTrials = FIT_LOGISTIC{i}{j}.IndividualModels{k}.YPred(whichTrialThatContrast);
+                PerformanceByContrastAll(k,ctr,j) = sum(predictionForThoseTrials==resultsThatContrast)/length(resultsThatContrast);
             end
         end
     end
     PerformanceByContrast = nanmean(PerformanceByContrastAll,3);
+    
+    switch size(PerformanceByContrast)
+        case 2
+            keyboard
+        case 1
+        otherwise
+            % keep going
+    end
 
     allPerformanceByContrast = [allPerformanceByContrast;PerformanceByContrast];
 end
