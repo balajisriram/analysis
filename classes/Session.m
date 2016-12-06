@@ -833,68 +833,74 @@ classdef Session
         
         function out = getAllWaveforms(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.waveformM = cell(1,numUnits);
             out.waveformSD = out.waveformM;
             for i = 1:length(allUnits)
                 [out.waveformM{i}, out.waveformSD{i}]= allUnits(i).getAvgWaveform;
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getAllISIs(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.ISIs = cell(1,numUnits);
             
             for i = 1:length(allUnits)
                 out.ISIs{i} = allUnits(i).ISI;
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getAllFWAtZeros(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.FWAt0s = cell(1,numUnits);
             
             for i = 1:length(allUnits)
                 out.FWAt0s{i} = allUnits(i).FWAtZero;
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getAllFWHMs(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.FWHMs = cell(1,numUnits);
             
             for i = 1:length(allUnits)
                 out.FWHMs{i} = allUnits(i).FWHM;
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getAllPeakToTroughs(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.PeakToTroughs = cell(1,numUnits);
             
             for i = 1:length(allUnits)
                 out.PeakToTroughs{i} = allUnits(i).getPeakToTrough;
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getAllNumChans(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.NumChans = cell(1,numUnits);
             
             for i = 1:length(allUnits)
                 out.NumChans{i} = allUnits(i).numChans;
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getReport(sess)
@@ -1164,12 +1170,13 @@ classdef Session
         
         function out = getAllORTuning(sess)
             numUnits = sess.numUnits;
-            [allUnits,ident] = sess.collateUnits;
+            [allUnits,ident,uid] = sess.collateUnits;
             out.tuning = cell(1,numUnits);
             for i = 1:numUnits
                 out.tuning{i}= sess.getORTuning(allUnits(i)); 
             end
             out.ident = ident;
+            out.uid = uid;
         end
         
         function out = getStimStartTime(sess,trials)
@@ -1303,9 +1310,10 @@ classdef Session
         
         function out = getAllOSI(sess)
             numUnits = sess.numUnits;
-            [allUnits, ident] = sess.collateUnits;
+            [allUnits, ident,uid] = sess.collateUnits;
             out.OSI = nan(1,numUnits);
             out.ident = ident;
+            out.uid = uid;
             for i = 1:numUnits
                 out.OSI(i) = sess.getOSI(allUnits(i));
             end
@@ -1313,10 +1321,11 @@ classdef Session
         
         function out = getAllOSIWithJackKnife(sess)
             numUnits = sess.numUnits;
-            [allUnits, ident] = sess.collateUnits;
+            [allUnits, ident,uid] = sess.collateUnits;
             out.OSI = nan(1,numUnits);
             out.OSISubsample = cell(1,numUnits);
             out.ident = ident;
+            out.uid = uid;
             for i = 1:numUnits
                 fprintf('%d/%d::',i,numUnits);
                 subsample = true;
@@ -1345,8 +1354,9 @@ classdef Session
         
         function out = getAllOrVectors(sess)
             numUnits = sess.numUnits;
-            [allUnits, ident] = sess.collateUnits;
+            [allUnits, ident,uid] = sess.collateUnits;
             out.ident = ident;
+            out.uid = uid;
             out.vectors(numUnits) = [];
             for i = 1:numUnits
                 out.vectors(i) = sess.getOrVector(allUnits(i));
@@ -1355,10 +1365,11 @@ classdef Session
         
         function out = getAllOrVectorsWithJackKnife(sess)
             numUnits = sess.numUnits;
-            [allUnits, ident] = sess.collateUnits;
+            [allUnits, iden,uid] = sess.collateUnits;
             out.vectors = cell(1,numUnits);
             out.vectorsJackKnife = cell(1,numUnits);
             out.ident = ident;
+            out.uid = uid;
             for i = 1:numUnits
                 fprintf('%d/%d::',i,numUnits);
                 subsample = true;
@@ -1403,8 +1414,9 @@ classdef Session
         
         % getAllFiringRates
         function fr = getAllFiringRates(sess)
-            [allUnits, ident] = sess.collateUnits;
+            [allUnits, ident, uid] = sess.collateUnits;
             fr.ident = ident;
+            fr.uid = uid;
             fr.firingRates(sess.numUnits) = nan;
             for i = 1:length(allUnits)
                 fr.firingRates(i) = allUnits(i).firingRate;
@@ -1412,8 +1424,11 @@ classdef Session
         end
         
         function sw = spikeWidths(sess)
-            allUnits = sess.collateUnits;
-            sw(sess.numUnits) = nan;
+            [allUnits,ident,uid]= sess.collateUnits;
+            
+            sw.sw(sess.numUnits) = nan;
+            sw.ident = ident;
+            sw.uid = uid;
             for i = 1:sess.numUnits
                 sw(i) = allUnits(i).spikeWidth;
             end
