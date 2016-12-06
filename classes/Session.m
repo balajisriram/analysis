@@ -782,7 +782,7 @@ classdef Session
             end
         end
         
-        function [allUnits, ident] = collateUnits(sess)
+        function [allUnits, ident, uid] = collateUnits(sess)
             numUnits = sess.numUnits();
             ident.unitNum = [];
             ident.trodeNum = [];
@@ -797,10 +797,19 @@ classdef Session
                 end
             end
             
+            ts = [ident.trodeNum];
+            us = [ident.unitNum];
+            
+            for i = 1:length(allUnits)
+                uid{end+1} = sprintf('t%du%d',ts(i),us(i));
+            end
+            
             if ~exist('allUnits','var')
                 allUnits = [];
                 ident = [];
             end
+            
+            
         end
         
         function plotWaveforms(sess)
