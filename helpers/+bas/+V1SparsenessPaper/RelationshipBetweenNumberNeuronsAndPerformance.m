@@ -1,23 +1,34 @@
-function PerfByPopSize = RelationshipBetweenNumberNeuronsAndPerformance(Population)
-PopulationSizes = [200];
-NumberofResamples = 100;
+function PerfByPopSize = RelationshipBetweenNumberNeuronsAndPerformance(Population,WhichContrast,WhichDuration)
+PopulationSizes = [1 3 10 30 100];
+NumberofResamples = 10;
 
 PerfByPopSize = nan(length(PopulationSizes),NumberofResamples);
 
+warning off;
 for i = 1:length(PopulationSizes)
     for j = 1:NumberofResamples
         
+        if mod(j,10)==0
+            fprintf('%d::%d\n',i,j);
+        end
+        
         % resamplePopulation
-        resampledPop = bas.V1SparsenessPaper.SimulateSession(Population,PopulationSizes(i),1000,2,2,'SpikeRate'); %c = 0.15; d = 100
+        NumTrials = 100000;
+        resampledPop = bas.V1SparsenessPaper.SimulateSession(Population,PopulationSizes(i),NumTrials,WhichContrast,WhichDuration,'SpikeRate'); %c = 0.15; d = 100
         
-        XTrain = resampledPop.SessionResponses(1:500,:);
-        YTrain = resampledPop.StimulusID(1:500);
-        XTest = resampledPop.SessionResponses(501:1000,:);
-        YTest = resampledPop.StimulusID(501:1000);
+        XTrain = resampledPop.SessionResponses(1:NumTrials/2,:);
+        YTrain = resampledPop.StimulusID(1:NumTrials/2);
+        XTest = resampledPop.SessionResponses(NumTrials/2+1:NumTrials,:);
+        YTest = resampledPop.StimulusID(NumTrials/2+1:NumTrials);
         
-        mdl = mnrfit(XTrain,YTrain);
-        [~,choice] = max(mnrval(mdl,XTest),[],2);
-        PerfByPopSize(i,j) = sum(choice==YTest)/length(YTest);
+        try
+            mdl = mnrfit(XTrain,YTrain);
+            [~,choice] = max(mnrval(mdl,XTest),[],2);
+            PerfByPopSize(i,j) = sum(choice==YTest)/length(YTest);
+        catch ex
+            getReport(ex)
+            PerfByPopSize(i,j) = NaN;
+        end
     end
 end
 
