@@ -3,10 +3,14 @@
 
 clear all;
 %loc = 'F:\workingSessionsnoWaveform';
-loc = '/media/ghosh/My Passport/workingSessionsNoWaveform';
+loc = '/media/ghosh/My Passport1/workingSessionsnoWaveform';
 d = dir(fullfile(loc,'*.mat'));
 
-DETAILS = {};
+SPIKEDETAILS = {};
+FIRINGRATE = {};
+OSIS = {};
+OSIJACKKNIFE = {};
+ORVECTOR = {};
 for j = 1:length(d)
     disp(j)
     clear sess
@@ -21,7 +25,6 @@ for j = 1:length(d)
         spikeDetails200 = sess.getFeature('SpikeAndStimDetails200');
         spikeDetails500 = sess.getFeature('SpikeAndStimDetails500');
         spikeDetails1000 = sess.getFeature('SpikeAndStimDetails1000');
-%         osi = sess.getFeature('OSIs');
     catch ex
         getReport(ex)
         spikeDetails0 = [];
@@ -30,7 +33,6 @@ for j = 1:length(d)
         spikeDetails200 = [];
         spikeDetails500 = [];
         spikeDetails1000 = [];
-%         osi = [];
     end
     spikeDetails0.sessionName = d(j).name;
     spikeDetails50.sessionName = d(j).name;
@@ -41,8 +43,53 @@ for j = 1:length(d)
     
 %     osi.sessionName = d(j).name;
     
-    DETAILS{end+1} = {spikeDetails0,spikeDetails50,...
+    SPIKEDETAILS{end+1} = {spikeDetails0,spikeDetails50,...
         spikeDetails100,spikeDetails200,spikeDetails500,...
         spikeDetails1000};
+    
+%         case 'OSIs'
+%             out = sess.getAllOSI();
+%         case 'OSIsWithJackKnife'
+%             out = sess.getAllOSIWithJackKnife();
+%         case 'OrientedVectorWithJackKnife'
+%             out = sess.getAllOrVectorsWithJackKnife();
+%     end
+                    
+    try
+        firingRate = sess.getFeature('FiringRate');
+    catch ex
+        getReport(ex)
+        firingRate = [];
+    end
+    firingRate.sessionName = d(j).name;
+    FIRINGRATE{end+1} = firingRate;
+    
+    try
+        osi = sess.getFeature('OSIs');
+    catch ex
+        getReport(ex)
+        osi = [];
+    end
+    osi.sessionName = d(j).name;
+    OSIS{end+1} = osi;
+    
+    try
+        OSIJackKnife = sess.getFeature('OSIsWithJackKnife');
+    catch ex
+        getReport(ex)
+        OSIJackKnife = [];
+    end
+    OSIJackKnife.sessionName = d(j).name;
+    OSIJACKKNIFE{end+1} = OSIJackKnife;
+    
+    try
+        ORVector = sess.getFeature('OrientedVectorWithJackKnife');
+    catch ex
+        getReport(ex)
+        ORVector = [];
+    end
+    ORVector.sessionName = d(j).name;
+    ORVECTOR{end+1} = ORVector;
+    
 end
-save('DetailsAtVariousTimescales.mat','DETAILS');
+% save('DetailsAtVariousTimescales.mat','SPIKEDETAILS');
