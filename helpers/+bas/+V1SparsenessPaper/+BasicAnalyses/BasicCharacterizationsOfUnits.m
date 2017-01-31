@@ -1,25 +1,45 @@
 %% Characterize the firing rates
+
 warning off;
-dataFolders = {'C:\Users\ghosh\Desktop\PhysData\284\284_InspectedPhys',...
-    'C:\Users\ghosh\Desktop\PhysData\bas070\InspectedSessions',...
-    'C:\Users\ghosh\Desktop\PhysData\bas072\InspectedSessions',...
-    'C:\Users\ghosh\Desktop\PhysData\bas074\InspectedSessions'};
+dataFolders = {'E:\workingSessions'};
 numUnitsTotal = 0;
 frUnits = [];
 swUnits = [];
+sessNames = {};
 for i = 1:length(dataFolders);
     fprintf('i = %d\n',i);
-    d = dir(dataFolders{i});
+    d = dir(fullfile(dataFolders{i},'*.mat'));
     d = d(~ismember({d.name},{'.','..'}));
     for j = 1:length(d)
-        fprintf('filename = %s\n',d(i).name);
-        temp = load(fullfile(dataFolders{i},d(i).name));
+        fprintf('filename = %s\n',d(j).name);
+        temp = load(fullfile(dataFolders{i},d(j).name));
         numUnitstotal = temp.sess.numUnits;
         swUnits = [swUnits temp.sess.spikeWidths];
-        frUnits = [frUnits temp.sess.firingRates];
+        frUnits = [frUnits temp.sess.getAllFiringRates];
+        sessNames{end+1} = d(j).name;
     end
 end
+%% pull out the data one at a time and make a table
+spikeWidths = [];
+unitID = {};
+for i = 1:length(swUnits)
+    for j = 1:length(swUnits(i).sw)
+        spikeWidths(end+1) = swUnits(i).sw(j);
+        unitID{end+1} = sprintf('%s_%s',sessNames{i},swUnits(i).uid{j});
+    end
+end
+SpikeWidthTable = table(unitID',spikeWidths','VariableNames',{'uID','spikeWidth'});
 
+%% 
+firingRates = [];
+unitID = {};
+for i = 1:length(frUnits)
+    for j = 1:length(frUnits(i).firingRates)
+        firingRates(end+1) = frUnits(i).firingRates(j);
+        unitID{end+1} = sprintf('%s_%s',sessNames{i},frUnits(i).uid{j});
+    end
+end
+FiringRateTable = table(unitID',firingRates','VariableNames',{'uID','firingRate'});
 %% Characterize correlations
 
 dataFolders = {'C:\Users\Ghosh\Desktop\PhysData\070\070_InspectedSessions',...

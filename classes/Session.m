@@ -783,6 +783,7 @@ classdef Session
         end
         
         function [allUnits, ident, uid] = collateUnits(sess)
+            uid = {};
             numUnits = sess.numUnits();
             ident.unitNum = [];
             ident.trodeNum = [];
@@ -799,6 +800,10 @@ classdef Session
             
             ts = [ident.trodeNum];
             us = [ident.unitNum];
+            
+            if ~exist('allUnits','var')
+                allUnits = [];
+            end
             
             for i = 1:length(allUnits)
                 uid{end+1} = sprintf('t%du%d',ts(i),us(i));
@@ -1430,7 +1435,7 @@ classdef Session
             sw.ident = ident;
             sw.uid = uid;
             for i = 1:sess.numUnits
-                sw(i) = allUnits(i).spikeWidth;
+                sw.sw(i) = allUnits(i).spikeWidth;
             end
         end
         

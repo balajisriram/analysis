@@ -6,7 +6,7 @@
 % (5) Different ways to characterize the waveforms FW at 0, FWHM, PK2TROUGH
 
 clear all;
-loc = '/media/ghosh/My Passport/workingSessions';
+loc = 'E:\workingSessions';%'/media/ghosh/My Passport/workingSessions';
 d = dir(fullfile(loc,'*.mat'));
 
 MEANFIRINGRATE = {};
@@ -28,6 +28,7 @@ for j = 1:length(d)
         fr = sess.getFeature('FiringRate');
     catch ex
         getReport(ex);
+        keyboard
         fr = [];
     end
     fr.sessionName = d(j).name;
@@ -38,6 +39,7 @@ for j = 1:length(d)
         isi = sess.getFeature('ISIs');
     catch ex
         getReport(ex);
+        keyboard
         isi = [];
     end
     isi.sessionName = d(j).name;
@@ -48,6 +50,7 @@ for j = 1:length(d)
         wvfrm = sess.getFeature('Waveforms');
     catch ex
         getReport(ex);
+        keyboard
         wvfrm = [];
     end
     wvfrm.sessionName = d(j).name;
@@ -58,6 +61,7 @@ for j = 1:length(d)
         numChans = sess.getFeature('NumChans');
     catch ex
         getReport(ex);
+        keyboard
         numChans = [];
     end
     numChans.sessionName = d(j).name;
@@ -68,6 +72,7 @@ for j = 1:length(d)
         fwat0 = sess.getFeature('FWAt0s');
     catch ex
         getReport(ex);
+        keyboard
         fwat0 = [];
     end
     fwat0.sessionName = d(j).name;
@@ -78,6 +83,7 @@ for j = 1:length(d)
         fwhm = sess.getFeature('FWHMs');
     catch ex
         getReport(ex);
+        keyboard
         fwhm = [];
     end
     fwhm.sessionName = d(j).name;
@@ -88,6 +94,7 @@ for j = 1:length(d)
         pk2tr = sess.getFeature('PeakToTroughs');
     catch ex
         getReport(ex);
+        keyboard
         pk2tr = [];
     end
     pk2tr.sessionName = d(j).name;
