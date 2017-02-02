@@ -16,15 +16,12 @@ for j = 1:length(d)
     
     % firing Rates and OSI
     try
-        fr = sess.getFeature('FiringRate');
         osi = sess.getFeature('OSIsWithJackKnife');
         vect = sess.getFeature('OrientedVectorWithJackKnife');
     catch ex
-        fr = [];
         osi = [];
         vect = [];
     end
-    fr.sessionName = d(j).name;
     vect.sessionName = d(j).name;
     osi.sessionName = d(j).name;
     DETAILS{end+1} = {fr,vect,osi};
