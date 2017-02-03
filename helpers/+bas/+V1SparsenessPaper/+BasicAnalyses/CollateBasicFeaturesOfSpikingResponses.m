@@ -104,6 +104,146 @@ end
 
 save('Details.mat','MEANFIRINGRATE','ISI','WAVEFORMS','NUMCHANS','FWAT0','FWHM','PK2TROUGHS')
 
+%% make Tabls using Data
+%% FWAT0
+SpikeFullWidthAt0 = [];
+unitID = {};
+for i = 1:length(FWAT0)
+    for j = 1:length(FWAT0{i}.FWAt0s)
+        if ~isempty(FWAT0{i}.FWAt0s{j})
+            SpikeFullWidthAt0(end+1) = FWAT0{i}.FWAt0s{j};
+        else
+            SpikeFullWidthAt0(end+1) = NaN;
+            keyboard
+        end
+        temp = FWAT0{i}.sessionName;
+        [~,temp] = fileparts(temp);
+        unitID{end+1} = sprintf('%s_%s', temp, FWAT0{i}.uid{j});
+    end
+end
+SpikeFullWidthAt0Table = table(unitID',SpikeFullWidthAt0','VariableNames',{'uID','SpikeFullWidthAt0'});
+
+
+%%
+SpikeFullWidthAtHalfMax = [];
+unitID = {};
+for i = 1:length(FWHM)
+    for j = 1:length(FWHM{i}.FWHMs)
+        if ~isempty(FWHM{i}.FWHMs{j})
+            try
+                SpikeFullWidthAtHalfMax(end+1) = FWHM{i}.FWHMs{j};
+            catch ex
+                temp = FWHM{i}.FWHMs{j};
+                SpikeFullWidthAtHalfMax(end+1) = temp(2);
+            end
+        else
+            SpikeFullWidthAtHalfMax(end+1) = NaN;
+            keyboard
+        end
+        temp = FWHM{i}.sessionName;
+        [~,temp] = fileparts(temp);
+        unitID{end+1} = sprintf('%s_%s', temp, FWHM{i}.uid{j});
+    end
+end
+SpikeFullWidthAtHalfMaxTable = table(unitID',SpikeFullWidthAtHalfMax','VariableNames',{'uID','SpikeFullWidthAtHalfMax'});
+
+
+%% MEANFIRINGRATE2
+MeanFiringRate2 = [];
+unitID = {};
+for i = 1:length(MEANFIRINGRATE)
+    for j = 1:length(MEANFIRINGRATE{i}.firingRates)
+        if ~isempty(MEANFIRINGRATE{i}.firingRates(j))
+            try
+                MeanFiringRate2(end+1) = MEANFIRINGRATE{i}.firingRates(j);
+            catch ex
+                temp = MEANFIRINGRATE{i}.firingRates(j);
+                keyboard
+            end
+        else
+            MeanFiringRate2(end+1) = NaN;
+            keyboard
+        end
+        temp = MEANFIRINGRATE{i}.sessionName;
+        [~,temp] = fileparts(temp);
+        unitID{end+1} = sprintf('%s_%s', temp, MEANFIRINGRATE{i}.uid{j});
+    end
+end
+MeanFiringRate2Table = table(unitID',MeanFiringRate2','VariableNames',{'uID','MeanFiringRate2'});
+
+%% NUMCHANS
+NumChans = [];
+unitID = {};
+for i = 1:length(NUMCHANS)
+    for j = 1:length(NUMCHANS{i}.NumChans)
+        if ~isempty(NUMCHANS{i}.NumChans{j})
+            try
+                NumChans(end+1) = NUMCHANS{i}.NumChans{j};
+            catch ex
+                temp = NUMCHANS{i}.NumChans{j};
+                keyboard
+            end
+        else
+            NumChans(end+1) = NaN;
+            keyboard
+        end
+        temp = NUMCHANS{i}.sessionName;
+        [~,temp] = fileparts(temp);
+        unitID{end+1} = sprintf('%s_%s', temp, NUMCHANS{i}.uid{j});
+    end
+end
+NumChansTable = table(unitID',NumChans','VariableNames',{'uID','NumChans'});
+
+%% PK2TROUGHS
+SpikePeakToTroughWidth = [];
+unitID = {};
+for i = 1:length(PK2TROUGHS)
+    for j = 1:length(PK2TROUGHS{i}.PeakToTroughs)
+        if ~isempty(PK2TROUGHS{i}.PeakToTroughs{j})
+            try
+                SpikePeakToTroughWidth(end+1) = PK2TROUGHS{i}.PeakToTroughs{j};
+            catch ex
+                temp = PK2TROUGHS{i}.PeakToTroughs{j};
+                keyboard
+            end
+        else
+            SpikePeakToTroughWidth(end+1) = NaN;
+            keyboard
+        end
+        temp = PK2TROUGHS{i}.sessionName;
+        [~,temp] = fileparts(temp);
+        unitID{end+1} = sprintf('%s_%s', temp, PK2TROUGHS{i}.uid{j});
+    end
+end
+SpikePeakToTroughWidthTable = table(unitID',SpikePeakToTroughWidth','VariableNames',{'uID','SpikePeakToTroughWidth'});
+
+%% ISI
+ISIS = {};
+unitID = {};
+for i = 1:length(ISI)
+    for j = 1:length(ISI{i}.ISIs)
+        if ~isempty(ISI{i}.ISIs{j})
+            try
+                ISIS{end+1} = ISI{i}.ISIs{j};
+            catch ex
+                temp = ISI{i}.ISIs{j};
+                keyboard
+            end
+        else
+            ISIS{end+1} = NaN;
+            keyboard
+        end
+        temp = ISI{i}.sessionName;
+        [~,temp] = fileparts(temp);
+        unitID{end+1} = sprintf('%s_%s', temp, ISI{i}.uid{j});
+    end
+end
+
+
+ISITable = table(unitID',ISIS','VariableNames',{'uID','ISI'});
+
+
+%%
 % firingRates = [];
 % for j = 1:length(MEANFIRINGRATE)
 %     if ~isempty(MEANFIRINGRATE{j})
