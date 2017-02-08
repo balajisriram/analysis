@@ -3,7 +3,7 @@
 % (2) Statistics of OSI
 clear all;
 % loc = '/media/ghosh/My Passport/workingSessions';
-loc = 'F:\workingSessionsnoWaveform';
+loc = 'E:\workingSessionsnoWaveform';
 d = dir(fullfile(loc,'*.mat'));
 
 DETAILS = {};

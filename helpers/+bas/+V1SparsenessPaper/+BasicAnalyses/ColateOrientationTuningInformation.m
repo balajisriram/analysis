@@ -3,7 +3,6 @@ load Details_OrientationVector_Second
 VECANG = [];
 VECSTR = [];
 OSIs = [];
-FRs = [];
 
 OSIMEANS = [];
 OSISDs = [];
@@ -28,42 +27,61 @@ VECSTRCILO = [];
 VECANGCIHI = [];
 VECSTRCIHI = [];
 
+unitID = {};
+
 for i = 1:length(DETAILS)
-    if isfield(DETAILS{i}{2},'vectors')
-        numNeurons = length(DETAILS{i}{1}.firingRates);
+    if isfield(DETAILS{i}{1},'vectors')
+        numNeurons = length(DETAILS{i}{2}.uid);
+        [~,sessName] = fileparts(DETAILS{i}{2}.sessionName);
         for j = 1:numNeurons
-            FRs = [FRs DETAILS{i}{1}.firingRates(j)];
+            unitID{end+1} = sprintf('%s_%s',sessName,DETAILS{i}{2}.uid{j});
             
-            VECANG = [VECANG DETAILS{i}{2}.vectors{j}.ang];
-            VECSTR = [VECSTR DETAILS{i}{2}.vectors{j}.str];
-            VECSTRMEANS = [VECSTRMEANS mean([DETAILS{i}{2}.vectorsJackKnife{j}.str])];
-            VECANGMEANS = [VECANGMEANS mean([DETAILS{i}{2}.vectorsJackKnife{j}.ang])];
-            VECSTRSDs = [VECSTRSDs std([DETAILS{i}{2}.vectorsJackKnife{j}.str])];
-            VECANGSDs = [VECANGSDs std([DETAILS{i}{2}.vectorsJackKnife{j}.ang])];
-            VECSTRLEN = [VECSTRLEN length([DETAILS{i}{2}.vectorsJackKnife{j}.str])];
-            VECANGLEN = [VECANGLEN length([DETAILS{i}{2}.vectorsJackKnife{j}.ang])];
-            VECSTRMINs = [VECSTRMINs min([DETAILS{i}{2}.vectorsJackKnife{j}.str])];
-            VECANGMINs = [VECANGMINs min([DETAILS{i}{2}.vectorsJackKnife{j}.ang])];
-            VECSTRMAXs = [VECSTRMAXs max([DETAILS{i}{2}.vectorsJackKnife{j}.str])];
-            VECANGMAXs = [VECANGMAXs max([DETAILS{i}{2}.vectorsJackKnife{j}.ang])];
+%             VECANG = [VECANG DETAILS{i}{1}.vectors{j}.ang];
+%             VECSTR = [VECSTR DETAILS{i}{1}.vectors{j}.str];
+%             VECSTRMEANS = [VECSTRMEANS mean([DETAILS{i}{1}.vectorsJackKnife{j}.str])];
+%             VECANGMEANS = [VECANGMEANS mean([DETAILS{i}{1}.vectorsJackKnife{j}.ang])];
+%             VECSTRSDs = [VECSTRSDs std([DETAILS{i}{1}.vectorsJackKnife{j}.str])];
+%             VECANGSDs = [VECANGSDs std([DETAILS{i}{1}.vectorsJackKnife{j}.ang])];
+%             VECSTRLEN = [VECSTRLEN length([DETAILS{i}{1}.vectorsJackKnife{j}.str])];
+%             VECANGLEN = [VECANGLEN length([DETAILS{i}{1}.vectorsJackKnife{j}.ang])];
+%             VECSTRMINs = [VECSTRMINs min([DETAILS{i}{1}.vectorsJackKnife{j}.str])];
+%             VECANGMINs = [VECANGMINs min([DETAILS{i}{1}.vectorsJackKnife{j}.ang])];
+%             VECSTRMAXs = [VECSTRMAXs max([DETAILS{i}{1}.vectorsJackKnife{j}.str])];
+%             VECANGMAXs = [VECANGMAXs max([DETAILS{i}{1}.vectorsJackKnife{j}.ang])];
+%             
+%             VECSTRCILO = [VECSTRCILO quantile([DETAILS{i}{1}.vectorsJackKnife{j}.str],0.025)];
+%             VECANGCILO = [VECANGCILO quantile([DETAILS{i}{1}.vectorsJackKnife{j}.ang],0.025)];
+%             VECSTRCIHI = [VECSTRCIHI quantile([DETAILS{i}{1}.vectorsJackKnife{j}.str],0.975)];
+%             VECANGCIHI = [VECANGCIHI quantile([DETAILS{i}{1}.vectorsJackKnife{j}.ang],0.975)];
+            OSIs = [OSIs DETAILS{i}{2}.OSI(j)];
             
-            VECSTRCILO = [VECSTRCILO quantile([DETAILS{i}{2}.vectorsJackKnife{j}.str],0.025)];
-            VECANGCILO = [VECANGCILO quantile([DETAILS{i}{2}.vectorsJackKnife{j}.ang],0.025)];
-            VECSTRCIHI = [VECSTRCIHI quantile([DETAILS{i}{2}.vectorsJackKnife{j}.str],0.975)];
-            VECANGCIHI = [VECANGCIHI quantile([DETAILS{i}{2}.vectorsJackKnife{j}.ang],0.975)];
-            
-            OSIMEANS = [OSIMEANS nanmean(DETAILS{i}{3}.OSISubsample{j})];
-            OSISDs = [OSISDs nanstd(DETAILS{i}{3}.OSISubsample{j})];
-            OSILEN = [OSILEN length(DETAILS{i}{3}.OSISubsample{j})];
-            OSIMINs = [OSIMINs min(DETAILS{i}{3}.OSISubsample{j})];
-            OSIMAXs = [OSIMAXs max(DETAILS{i}{3}.OSISubsample{j})];
-            OSICILO = [OSICILO quantile(DETAILS{i}{3}.OSISubsample{j},0.025)];
-            OSICIHI = [OSICIHI quantile(DETAILS{i}{3}.OSISubsample{j},0.975)];
+            OSIMEANS = [OSIMEANS nanmean(DETAILS{i}{2}.OSISubsample{j})];
+            OSISDs = [OSISDs nanstd(DETAILS{i}{2}.OSISubsample{j})];
+            OSILEN = [OSILEN length(DETAILS{i}{2}.OSISubsample{j})];
+            OSIMINs = [OSIMINs min(DETAILS{i}{2}.OSISubsample{j})];
+            OSIMAXs = [OSIMAXs max(DETAILS{i}{2}.OSISubsample{j})];
+            OSICILO = [OSICILO quantile(DETAILS{i}{2}.OSISubsample{j},0.025)];
+            OSICIHI = [OSICIHI quantile(DETAILS{i}{2}.OSISubsample{j},0.975)];
         end
         
         
     end
 end
+
+%%
+SpikeVectorDetailsTable = table(unitID',VECANG',VECSTR',VECANGMEANS',VECSTRMEANS',VECANGSDs',VECSTRSDs',...
+    VECANGLEN',VECSTRLEN',VECANGMINs',VECSTRMINs',VECANGMAXs',VECSTRMAXs',VECANGCILO',VECSTRCILO',VECANGCIHI',VECSTRCIHI',...
+    'VariableNames',{'uID','VectorAngle','VectorStrength','VectorJackKnifeAngleMean','VectorJackKnifeStrengthMean',...
+    'VectorJackKnifeAngleSD','VectorJackKnifeStrengthSD','VectorJackKnifeAngleLength','VectorJackKnifeStrengthLength',...
+    'VectorJackKnifeAngleMin','VectorJackKnifeStrengthMin','VectorJackKnifeAngleMax','VectorJackKnifeStrengthMax',...
+    'VectorJackKnifeAngleCILo','VectorJackKnifeStrengthCILo','VectorJackKnifeAngleCIHi','VectorJackKnifeStrengthCIHi',...
+    });
+
+%%
+SpikeOSIDetailsTable = table(unitID',OSIs',OSIMEANS',OSISDs',OSILEN',OSIMINs',OSIMAXs',OSICILO',OSICIHI',...
+    'VariableNames',{'uID','OSI','OSIJackKnifeMean','OSIJackKnifeSD',...
+    'OSIJackKnifeLength','OSIJackKnifeMin','OSIJackKnifeMax','OSIJackKnifeCILo','OSIJackKnifeCIHi',...
+    });
 
 %%
 

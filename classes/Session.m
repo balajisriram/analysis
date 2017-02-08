@@ -1632,16 +1632,43 @@ classdef Session
     methods % methods for spike quality metrics
         
         function out = getAllSpikeQualitiesMahal(sess)
-            numUnits = sess.numUnits;
-            [allUnits, ident,uid] = sess.collateUnits;
-            out.ident = ident;
-            out.uid = uid;
-            % get the waveforms
-            waveforms = [];
-            for i = 1:numUnits
-                temp = allUnits(i).waveform;
-                temp2 = reshape(temp,size(temp,1),size(temp,2)*size(temp,3));
-                keyboard
+            out.uID = {};
+            out.quality = [];
+            out.contaminationRate =[];
+            % number of trodes
+            for i = 1:length(sess.trodes)
+                swAll = [];
+                spikeID = [];
+                % lets get the waveforms together
+                sWExtra = sess.trodes(i).spikeWaveForms;
+                numChans = length(sess.trodes(i).chans);
+                if numChans>1
+                    sWExtra = reshape(sWExtra,size(sWExtra,1),size(sWExtra,2)*size(sWExtra,3));
+                end
+                numSpikes = size(sWExtra,1);
+                swAll = [swAll;sWExtra];
+                spikeID = [spikeID;zeros(numSpikes,1)];
+                for j = 1:length(sess.trodes(i).units)
+                    thatUnitSpikeWaveform = sess.trodes(i).units(j).waveform;
+                    if numChans>1
+                        thatUnitSpikeWaveform = reshape(thatUnitSpikeWaveform,...
+                            size(thatUnitSpikeWaveform,1),size(thatUnitSpikeWaveform,2)*size(thatUnitSpikeWaveform,3));
+                    end
+                    numSpikes = size(thatUnitSpikeWaveform,1);
+                    swAll = [swAll;thatUnitSpikeWaveform];
+                    spikeID = [spikeID;j*ones(numSpikes,1)];
+                end
+                
+%                 keyboard
+                for j = 1:length(sess.trodes(i).units)
+                    disp(j);
+                    % make a version that makes for only that unit 
+                    which = spikeID==j;
+                    [q,r] = Session.mahalQualityCore(swAll(which,:),swAll(~which,:));
+                    out.uID{end+1} = sprintf('t%du%d',i,j);
+                    out.quality(end+1) = q;
+                    out.contaminationRate(end+1) = r;
+                end
             end
         end
 
@@ -1919,7 +1946,7 @@ classdef Session
                 mdSelf = sort(mdSelf);
                 
                 unitQuality = md(n);
-                contaminationRate = 1-tippingPoint(mdSelf, md)/numel(mdSelf);
+                contaminationRate = 1-Session.tippingPoint(mdSelf, md)/numel(mdSelf);
             else
                 unitQuality = 0;
                 contaminationRate = NaN;
