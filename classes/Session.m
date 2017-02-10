@@ -1498,7 +1498,7 @@ classdef Session
             
             timeToFirstSpike = [];            
             
-            units = sess.collateUnits();
+            [units,ident,uid] = sess.collateUnits();
             
             %check if it has gratings_LED
             tD = sess.trialDetails;
@@ -1581,7 +1581,7 @@ classdef Session
             out.spikeRatesNominal = spikeRatesNominal;
             out.spikeRatesActual = spikeRatesActual;
             out.timeToFirstSpike = timeToFirstSpike;
-            
+            out.uid = uid;
 %              keyboard
         end
         

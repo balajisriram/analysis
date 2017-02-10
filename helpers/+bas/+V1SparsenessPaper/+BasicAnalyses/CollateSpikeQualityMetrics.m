@@ -26,3 +26,17 @@ for j = 1:length(d)
 end
 % 
 save('Details_SpikeQuality.mat','DETAILS');
+%%
+clear all
+load Details_SpikeQuality
+unitID = {};
+quals = [];
+contamRates = [];
+for i = 1:length(DETAILS)
+    [~,sessName] = fileparts(DETAILS{i}{1}.sessionName);
+    for j = 1:length(DETAILS{i}{1}.uID)
+        unitID{end+1} = sprintf('%s_%s',sessName,DETAILS{i}{1}.uID{j});
+        quals(end+1) = DETAILS{i}{1}.quality(j);
+        contamRates(end+1) = DETAILS{i}{1}.contaminationRate(j);
+    end
+end
