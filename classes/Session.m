@@ -1480,9 +1480,12 @@ classdef Session
             
         end
         
-        function out = getSpikeAndStimDetails(sess,interval)
+        function out = getSpikeAndStimDetails(sess,interval,from)
             if ~exist('interval','var')||isempty(interval)
                 interval = 0.1;
+            end
+            if ~exist('from','var')||isempty(from)
+                from = 'stimEnd';
             end
             trNums = [];
             nominalStimDurations = [];
@@ -1549,8 +1552,14 @@ classdef Session
                 orientations = [orientations;dets.stimDetails.orientations];
                 
                 stimStartTime = frameRecord.start(2);
-                windowNominal = [0 (dets.stimDetails.maxDuration/60)+interval];
-                windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+interval]; % adding 100 ms to stimulus
+                switch from
+                    case 'stimStart'
+                        windowNominal = [0 interval];
+                        windowActual = [0 interval]; % adding 100 ms to stimulus
+                    case 'stimEnd'
+                        windowNominal = [0 (dets.stimDetails.maxDuration/60)+interval];
+                        windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+interval]; % adding 100 ms to stimulus
+                end
                 
                 unitSpikesNominal = cell(1,sess.numUnits);
                 unitSpikesActual = cell(1,sess.numUnits);
@@ -1610,17 +1619,31 @@ classdef Session
                 case 'SpikeAndStimDetails'
                     out = sess.getSpikeAndStimDetails();
                 case 'SpikeAndStimDetails0'
-                    out = sess.getSpikeAndStimDetails(0);
+                    out = sess.getSpikeAndStimDetails(0,'stimEnd');
                 case 'SpikeAndStimDetails50'
-                    out = sess.getSpikeAndStimDetails(0.05);
+                    out = sess.getSpikeAndStimDetails(0.05,'stimEnd');
                 case 'SpikeAndStimDetails100'
-                    out = sess.getSpikeAndStimDetails(0.1);
+                    out = sess.getSpikeAndStimDetails(0.1,'stimEnd');
                 case 'SpikeAndStimDetails200'
-                    out = sess.getSpikeAndStimDetails(0.2);
+                    out = sess.getSpikeAndStimDetails(0.2,'stimEnd');
                 case 'SpikeAndStimDetails500'
-                    out = sess.getSpikeAndStimDetails(0.5);
+                    out = sess.getSpikeAndStimDetails(0.5,'stimEnd');
                 case 'SpikeAndStimDetails1000'
-                    out = sess.getSpikeAndStimDetails(1);
+                    out = sess.getSpikeAndStimDetails(1,'stimEnd');
+                case 'SpikeAndStimDetails-0'
+                    out = sess.getSpikeAndStimDetails(0,'stimEnd');
+                case 'SpikeAndStimDetails-50'
+                    out = sess.getSpikeAndStimDetails(0.05,'stimEnd');
+                case 'SpikeAndStimDetails-100'
+                    out = sess.getSpikeAndStimDetails(0.1,'stimEnd');
+                case 'SpikeAndStimDetails-200'
+                    out = sess.getSpikeAndStimDetails(0.2,'stimEnd');
+                case 'SpikeAndStimDetails-500'
+                    out = sess.getSpikeAndStimDetails(0.5,'stimEnd');
+                case 'SpikeAndStimDetails-1000'
+                    out = sess.getSpikeAndStimDetails(1,'stimEnd');
+                case 'SpikeAndStimDetails-5000'
+                    out = sess.getSpikeAndStimDetails(5,'stimEnd');
                 case 'SpikeQualityMahal'
                     out = sess.getAllSpikeQualitiesMahal();
                 case 'SpikeQualityISI'
