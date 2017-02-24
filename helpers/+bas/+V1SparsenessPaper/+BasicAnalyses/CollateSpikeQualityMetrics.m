@@ -28,7 +28,7 @@ end
 save('Details_SpikeQuality.mat','DETAILS');
 %%
 clear all
-load Details_SpikeQuality
+load Details_SpikeQuality_NoExtras
 unitID = {};
 quals = [];
 contamRates = [];
@@ -40,3 +40,4 @@ for i = 1:length(DETAILS)
         contamRates(end+1) = DETAILS{i}{1}.contaminationRate(j);
     end
 end
+SpikeQualityTable = table(unitID',quals',contamRates','VariableNames',{'uID','spikeQuality','contaminationRate'});
