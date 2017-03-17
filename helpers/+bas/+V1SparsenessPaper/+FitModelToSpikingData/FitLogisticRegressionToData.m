@@ -1,6 +1,6 @@
 function FIT_LOGISTIC = FitLogisticRegressionToData
 if ~exist('SPIKEDETAILS','var')
-    load('DetailsAtVariousTimescales')
+    load('DetailsAtVariousTimescales_Detailed2')
 end
 
 FIT_LOGISTIC = {};
@@ -9,8 +9,8 @@ tic
 fprintf('\n');
 
 for i = setdiff(1:length(SPIKEDETAILS),[7,9,10,11,17,35])
-    numConditions = 13;
-    numTests = 25;
+    numConditions = 18;
+    numTests = 100;
     fitsThisSession = cell(numConditions,numTests);
     for l = 1:numConditions
         fprintf('session %d: ',i);
@@ -39,6 +39,8 @@ for i = setdiff(1:length(SPIKEDETAILS),[7,9,10,11,17,35])
             fit.YTest = stimToRight(whichTest)+1;
             fit.cTest = c(whichTest);
             fit.dTest = dur(whichTest);
+            fit.uid = SPIKEDETAILS{i}{l}.uid;
+            fit.sessionName = SPIKEDETAILS{i}{l}.sessionName;
             % individual models
             IndividualModels = cell(1,size(spR,2));
             for k = 1:size(spR,2)
@@ -86,7 +88,9 @@ for i = setdiff(1:length(SPIKEDETAILS),[7,9,10,11,17,35])
             fitsThisSession{l,j} = fit;
         end
         fprintf('\n');
-        FIT_LOGISTIC{i} = fitsThisSession;
+%         FIT_LOGISTIC{i} = fitsThisSession;
+        FitDataName = sprintf('FitThisSession%d_Detailed.mat',i);
+        save(FitDataName,'fitsThisSession')
     end
 end
 toc

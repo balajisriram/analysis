@@ -1594,7 +1594,7 @@ classdef Session
 %              keyboard
         end
         
-        function out = getFeature(sess,feature)
+        function out = getFeature(sess,feature,param)
             switch feature
                 case 'FiringRate'
                     out = sess.getAllFiringRates();
@@ -1617,7 +1617,7 @@ classdef Session
                 case 'OrientedVectorWithJackKnife'
                     out = sess.getAllOrVectorsWithJackKnife();
                 case 'SpikeAndStimDetails'
-                    out = sess.getSpikeAndStimDetails();
+                    out = sess.getSpikeAndStimDetails(param,'stimEnd');
                 case 'SpikeAndStimDetails0'
                     out = sess.getSpikeAndStimDetails(0,'stimEnd');
                 case 'SpikeAndStimDetails50'
@@ -1631,19 +1631,19 @@ classdef Session
                 case 'SpikeAndStimDetails1000'
                     out = sess.getSpikeAndStimDetails(1,'stimEnd');
                 case 'SpikeAndStimDetails-0'
-                    out = sess.getSpikeAndStimDetails(0,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(0,'stimStart');
                 case 'SpikeAndStimDetails-50'
-                    out = sess.getSpikeAndStimDetails(0.05,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(0.05,'stimStart');
                 case 'SpikeAndStimDetails-100'
-                    out = sess.getSpikeAndStimDetails(0.1,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(0.1,'stimStart');
                 case 'SpikeAndStimDetails-200'
-                    out = sess.getSpikeAndStimDetails(0.2,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(0.2,'stimStart');
                 case 'SpikeAndStimDetails-500'
-                    out = sess.getSpikeAndStimDetails(0.5,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(0.5,'stimStart');
                 case 'SpikeAndStimDetails-1000'
-                    out = sess.getSpikeAndStimDetails(1,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(1,'stimStart');
                 case 'SpikeAndStimDetails-5000'
-                    out = sess.getSpikeAndStimDetails(5,'stimEnd');
+                    out = sess.getSpikeAndStimDetails(5,'stimStart');
                 case 'SpikeQualityMahal'
                     out = sess.getAllSpikeQualitiesMahal();
                 case 'SpikeQualityISI'
@@ -1663,14 +1663,14 @@ classdef Session
                 swAll = [];
                 spikeID = [];
                 % lets get the waveforms together
-                sWExtra = sess.trodes(i).spikeWaveForms;
+%                 sWExtra = sess.trodes(i).spikeWaveForms;
                 numChans = length(sess.trodes(i).chans);
-                if numChans>1
-                    sWExtra = reshape(sWExtra,size(sWExtra,1),size(sWExtra,2)*size(sWExtra,3));
-                end
-                numSpikes = size(sWExtra,1);
-                swAll = [swAll;sWExtra];
-                spikeID = [spikeID;zeros(numSpikes,1)];
+%                 if numChans>1
+%                     sWExtra = reshape(sWExtra,size(sWExtra,1),size(sWExtra,2)*size(sWExtra,3));
+%                 end
+%                 numSpikes = size(sWExtra,1);
+%                 swAll = [swAll;sWExtra];
+%                 spikeID = [spikeID;zeros(numSpikes,1)];
                 for j = 1:length(sess.trodes(i).units)
                     thatUnitSpikeWaveform = sess.trodes(i).units(j).waveform;
                     if numChans>1

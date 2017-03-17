@@ -12,7 +12,8 @@ sessionPerformance = [];
 sessionID = [];
 
 % location of data
-loc = 'C:\Users\ghosh\Desktop\FitBySessionDetailed';
+% loc = 'C:\Users\ghosh\Desktop\FitBySessionDetailed';
+loc = '/home/ghosh/Desktop/FitsBySessionDetailed';
 for i = 1:58
     try
         name = sprintf('FitThisSession%d_Detailed.mat',i);
@@ -21,7 +22,7 @@ for i = 1:58
         getReport(ex)
         continue
     end
-    if isempty(fitsThisSession)
+    if ~exist('fitsThisSession','var') || isempty(fitsThisSession)
         continue;
     end
     FIT_LOGISTIC = {fitsThisSession{num,:}}; % 7 is window of length 0

@@ -3,7 +3,7 @@
 % AllEstimates
 % AllPVals
 % AllSignificance
-for num = [1:13];
+for num = [1:18];
     out = bas.V1SparsenessPaper.FitModelToSpikingData.PlotDetailsOfLogisticFits(num);
     if num ==1
         AllPerformances = out.allPerformance;
@@ -97,14 +97,14 @@ n = sum(~isnan(AllPerformances));
 sem = s./sqrt(n);
 
 subplot(4,1,1:2);
-errorbar(([0 25 50 75 100 150 200 250 300 350 400 450 500]), m, 2*sem,'k')
+errorbar(([-10 -25 -50 -75 -100 10 25 50 75 100 150 200 250 300 350 400 450 500]), m, 2*sem,'kd')
 
 %% only significant
 mSig = nan(size(m));
 sSig = mSig;
 nSig = mSig;
 semSig = mSig;
-for i = 1:13
+for i = 1:18
    pThat =  AllPerformances(:,i);
    sigThat = logical(AllSignificance(:,i));
    
@@ -114,18 +114,18 @@ for i = 1:13
    semSig(i) = sSig(i)/sqrt(nSig(i));
 end
 subplot(4,1,1:2); hold on;
-errorbar(([0 25 50 75 100 150 200 250 300 350 400 450 500]), mSig, 2*semSig,'b');
+errorbar(([-10 -25 -50 -75 -100 10 25 50 75 100 150 200 250 300 350 400 450 500]), mSig, 2*semSig,'bd');
 plot([0 500],[0.5 0.5],'k--')
 
 %% Number of significant units
 subplot(4,1,3); hold on;
-bar([0 25 50 75 100 150 200 250 300 350 400 450 500], nSig,'b');
+bar([-10 -25 -50 -75 -100 10 25 50 75 100 150 200 250 300 350 400 450 500], nSig,'b');
 
 
 %% Plotting probabilitiesw of Significance
 
-pRelevant = repmat(AllSignificance(:,5),1,13);
+pRelevant = repmat(AllSignificance(:,10),1,18);
 vals = sum(pRelevant.*AllSignificance)./sum(pRelevant);
 
 subplot(4,1,4);
-plot([0 25 50 75 100 150 200 250 300 350 400 450 500], vals,'b');
+plot([-10 -25 -50 -75 -100 10 25 50 75 100 150 200 250 300 350 400 450 500], vals,'b');
