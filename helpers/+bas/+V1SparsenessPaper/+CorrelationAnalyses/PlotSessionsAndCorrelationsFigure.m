@@ -186,10 +186,30 @@ for i = 1:51
 end
 
 %%
-dursFixed = fixDurations(durs);
-noOfCtrs = length(unique(c));
-noOfDurs = length(unique(durs));
 
+relevantAnalysis = 11; % the AtVariousTimeScales has analysis at 11 for 500 ms from stim onset.
+c = DETAILS{1}{relevantAnalysis}.contrasts;
+or = DETAILS{1}{relevantAnalysis}.orientations;
+durs = DETAILS{1}{relevantAnalysis}.actualStimDurations;
+spR = DETAILS{1}{relevantAnalysis}.spikeRatesActual.*repmat(durs,1,58);
+spR(isnan(spR)) = 0;
+
+dursFixed = bas.V1SparsenessPaper.CorrelationAnalyses.fixDurations(durs);
+uniqC = unique(c(~isnan(c)));
+uniqDur = unique(dursFixed(~isnan(dursFixed)));
+spR = round(spR);
+
+spikeResponsesByStimConditions = cell(2,length(uniqC), length(uniqDur));
+
+for i = 1:length(uniqC)
+    for j = 1:length(uniqDur)
+        whichTrialsR = c==uniqC(i) & dursFixed==uniqDur(j) & or>0;
+        spikeResponsesByStimConditions{1,i,j} = spR(whichTrialsR,:);
+        whichTrialsL = c==uniqC(i) & dursFixed==uniqDur(j) & or<0;
+        spikeResponsesByStimConditions{2,i,j} = spR(whichTrialsL,:);
+        
+    end
+end
 
 
 
