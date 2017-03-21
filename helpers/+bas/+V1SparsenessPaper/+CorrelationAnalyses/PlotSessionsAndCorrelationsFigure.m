@@ -1,6 +1,6 @@
 %% plot the example session
 if ~exist('DETAILS','var')
-    load DetailsAtVariousTimescales
+    load DetailsAt500MS
     DETAILS = SPIKEDETAILS;
     clear SPIKEDETAILS;
 end
@@ -73,8 +73,8 @@ C = [];
 OR = [];
 DURS = [];
 SESSNUM = [];
-for i = 1:51
-    relevantAnalysis = 11; % the AtVariousTimeScales has analysis at 11 for 500 ms from stim onset.
+for i = setdiff(1:58,[11,35])
+    relevantAnalysis = 1; % the AtVariousTimeScales has analysis at 11 for 500 ms from stim onset.
     c = DETAILS{i}{relevantAnalysis}.contrasts;
     or = DETAILS{i}{relevantAnalysis}.orientations;
     durs = DETAILS{i}{relevantAnalysis}.actualStimDurations;
@@ -128,25 +128,25 @@ g.draw();
 
 %% get mean population fraction at each session
 popFrac = [];
-for i = 1:51
+for i = 1:58
     popFrac =[popFrac mean(F(SESSNUM==i))];
 end
 
 %% get mean population fraction at each session as a functin of C
 popFracByContrast = [];
-for i = 1:51
+for i = 1:58
     popFracByContrast =[popFracByContrast; [mean(F(SESSNUM==i & C==0)) mean(F(SESSNUM==i & C==0.15)) mean(F(SESSNUM==i & C==1))]];
 end
 
 %% get mean population fraction at each session as a functin of C at DURSAL
 popFracByContrastAt100 = [];
-for i = 1:51
+for i = 1:58
     popFracByContrastAt100 =[popFracByContrastAt100; [mean(F(SESSNUM==i & C==0 & DURSALTERNATE==0.1)) mean(F(SESSNUM==i & C==0.15& DURSALTERNATE==0.1)) mean(F(SESSNUM==i & C==1& DURSALTERNATE==0.1))]];
 end
 
 %% get mean population fraction at each session as a functin of DURS at C = 0.15
 popFracByDurationAt0C = [];
-for i = 1:51
+for i = 1:58
     popFracByDurationAt0C =[popFracByDurationAt0C; ...
         [mean(F(SESSNUM==i & C==0 & DURSALTERNATE==0.05)) ...
         mean(F(SESSNUM==i & C==0 & DURSALTERNATE==0.1)) ...
@@ -170,7 +170,31 @@ for i = 1:51
         mean(F(SESSNUM==i & C==0.15 & DURSALTERNATE==0.5)) ...
         ]];
 end
+%% are they any different?
+Sigs = nan(7,7);
+pVals = Sigs;
+for i = 1:7
+    for j = 1:7
+        [p,h,stats] = ranksum(popFracByDurationAtLoC(:,i),popFracByDurationAtLoC(:,j));
+        Sigs(i,j) = h;
+        pVals(i,j) = p;
+    end
+end
 
+figure; hold on;
+plot(popFracByDurationAtLoC(:,1:4)','k')
+
+for i = 1:4
+    m = nanmean(popFracByDurationAtLoC(:,i));
+    sd = nanstd(popFracByDurationAtLoC(:,i));
+    n = sum(~isnan(popFracByDurationAtLoC(:,i)));
+    plot(i,m,'kd');
+    plot([i i],[m+2*sd/sqrt(n) m-2*sd/sqrt(n)]);
+end
+set(gca,'XLim',[0.5 4.5])
+set(gca,'YLim',[0 1])
+set(gca,'XTick',[1 2 3])
+set(gca,'YTick',[0 0.25 0.5 0.75 1])
 %% get mean population fraction at each session as a functin of DURS at C = 1
 popFracByDurationAtHiC = [];
 for i = 1:51
