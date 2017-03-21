@@ -1,7 +1,7 @@
 function out = FitLogisticRegressionToGivenSession(in)
 or = in.orientations;
 c = in.contrasts;
-dur = in.actualStimDurations;
+dur = in.durations;
 spR = in.spikeRatesActual;
 
 stimToRight = double(or>0);
