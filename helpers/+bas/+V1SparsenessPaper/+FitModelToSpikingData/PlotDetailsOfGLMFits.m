@@ -4,7 +4,7 @@ if ~exist('DETAILS','var')
 end
 contrasts = DETAILS{1}{1}.contrasts(1:5);
 orientation = DETAILS{1}{1}.orientations(1:5);
-durs = DETAILS{1}{1}.actualStimDurations(1:5)
+durs = DETAILS{1}{1}.actualStimDurations(1:5);
 spR = DETAILS{1}{1}.spikeRatesActual(1:5,1:20);
 
 f = figure;

@@ -1511,9 +1511,10 @@ classdef Session
                 temp{whichEmpty(i)} = 'none';
             end
             
-            hasGratingsLED = ismember('gratings_LED',unique(temp));
-            if hasGratingsLED
-                stepNameToLookFor = 'gratings_LED';
+            potentialStepNames = {'gratings_LED','gratings_NOLED'};
+            hasPotentialStep = ismember(potentialStepNames ,unique(temp));
+            if any(hasPotentialStep)
+                stepNameToLookFor = potentialStepNames{hasPotentialStep};
             else
                 stepNameToLookFor = 'gratings';
             end
@@ -1532,7 +1533,7 @@ classdef Session
                 whichTrialInFrame = [sess.eventData.frame.trialNumber]==i;
                 frameRecord = sess.eventData.frame(whichTrialInFrame);
                 
-                if length(frameRecord) ~=1 || isempty(frameRecord.start)
+                if length(frameRecord) ~=1
                     nominalStimDurations = [nominalStimDurations;NaN];
                     actualStimDurations = [actualStimDurations;NaN];
                     contrasts = [contrasts;NaN];
@@ -1542,24 +1543,57 @@ classdef Session
 %                     spikeRatesNominal = [spikeRatesNominal;nan(1,sess.numUnits)];
 %                     spikeRatesActual = [spikeRatesActual;nan(1,sess.numUnits)];
                     timeToFirstSpike = [timeToFirstSpike;nan(1,sess.numUnits)];
-                    fprintf('issue with trial:%d\n',i);
+%                     fprintf('issue with trial:%d\n',i);
                     continue
+                elseif isempty(frameRecord.start) % happened in some sessions
+                    try
+                        whichTrialInStim = [sess.eventData.stim.trialNumber]==i+1;
+                        if i+1>sess.maxTrialNum
+                            continue
+                        end
+                        stimRecord = sess.eventData.stim(whichTrialInStim);
+                        nominalStimDurations = [nominalStimDurations;dets.stimDetails.maxDuration];
+                        actualStimDurations = [actualStimDurations;stimRecord.stop-stimRecord.start];
+                        contrasts = [contrasts;dets.stimDetails.contrasts];
+                        orientations = [orientations;dets.stimDetails.orientations];
+                        stimStartTime = stimRecord.start;
+                        switch from
+                            case 'stimStart'
+                                windowNominal = [0 interval];
+                                windowActual = [0 interval];
+                            case 'stimEnd'
+                                windowNominal = [0 (dets.stimDetails.maxDuration/60)+interval];
+                                windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+interval]; % adding 100 ms to stimulus
+                        end
+                    catch ex
+                        nominalStimDurations = [nominalStimDurations;NaN];
+                        actualStimDurations = [actualStimDurations;NaN];
+                        contrasts = [contrasts;NaN];
+                        orientations = [orientations;NaN];
+                        spikeNumsNominal = [spikeNumsNominal;nan(1,sess.numUnits)];
+                        spikeNumsActual = [spikeNumsActual;nan(1,sess.numUnits)];
+                        %                     spikeRatesNominal = [spikeRatesNominal;nan(1,sess.numUnits)];
+                        %                     spikeRatesActual = [spikeRatesActual;nan(1,sess.numUnits)];
+                        timeToFirstSpike = [timeToFirstSpike;nan(1,sess.numUnits)];
+                        %                     fprintf('issue with trial:%d\n',i);
+                        continue
+                    end
+                else
+                    nominalStimDurations = [nominalStimDurations; dets.stimDetails.maxDuration];
+                    actualStimDurations = [actualStimDurations;frameRecord.start(end)-frameRecord.start(2)];
+                    contrasts = [contrasts;dets.stimDetails.contrasts];
+                    orientations = [orientations;dets.stimDetails.orientations];
+                    stimStartTime = frameRecord.start(2);
+                    switch from
+                        case 'stimStart'
+                            windowNominal = [0 interval];
+                            windowActual = [0 interval];
+                        case 'stimEnd'
+                            windowNominal = [0 (dets.stimDetails.maxDuration/60)+interval];
+                            windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+interval]; % adding 100 ms to stimulus
+                    end
                 end
                 
-                nominalStimDurations = [nominalStimDurations; dets.stimDetails.maxDuration];
-                actualStimDurations = [actualStimDurations;frameRecord.start(end)-frameRecord.start(2)];
-                contrasts = [contrasts;dets.stimDetails.contrasts];
-                orientations = [orientations;dets.stimDetails.orientations];
-                
-                stimStartTime = frameRecord.start(2);
-                switch from
-                    case 'stimStart'
-                        windowNominal = [0 interval];
-                        windowActual = [0 interval]; % adding 100 ms to stimulus
-                    case 'stimEnd'
-                        windowNominal = [0 (dets.stimDetails.maxDuration/60)+interval];
-                        windowActual = [0 frameRecord.start(end)-frameRecord.start(2)+interval]; % adding 100 ms to stimulus
-                end
                 
                 unitSpikesNominal = cell(1,sess.numUnits);
                 unitSpikesActual = cell(1,sess.numUnits);
