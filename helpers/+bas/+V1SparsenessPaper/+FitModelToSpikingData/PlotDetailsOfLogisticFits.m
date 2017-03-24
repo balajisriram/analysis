@@ -1,7 +1,10 @@
 %% Number of neurons that are significantly predictive of orientation
 % neurons that are consistently predictive are predictive no matter what
 % the training/testing splits are.
-function out = PlotDetailsOfLogisticFits(num);
+function out = PlotDetailsOfLogisticFits(num)
+if ~exist('num','var')
+    num = 1;
+end
 allPerformance = [];
 allEstimates = [];
 allPVals = [];
@@ -10,13 +13,14 @@ uID = {};
 whichSession = [];
 sessionPerformance = [];
 sessionID = [];
+numNeuronsInSession = [];
 
 % location of data
-% loc = 'C:\Users\ghosh\Desktop\FitBySessionDetailed';
-loc = '/home/ghosh/Desktop/FitsBySessionDetailed';
+loc = 'C:\Users\ghosh\Desktop\analysis\FitsIndividual_1';
+% loc = '/home/ghosh/Desktop/FitsBySessionDetailed';
 for i = 1:58
     try
-        name = sprintf('FitThisSession%d_Detailed.mat',i);
+        name = sprintf('FitThisSession%d500.mat',i);
         load(fullfile(loc,name));
     catch ex
         getReport(ex)
@@ -68,7 +72,7 @@ for i = 1:58
     consistency = sum(whichSig,2);
     neurons = find(consistency>numEstimates*0.7);
     neuronIsSignificant = consistency>numEstimates*0.7;
-    
+     
     allPerformance = [allPerformance;mean(Performance,2)];
     allEstimates = [allEstimates;mean(Estimates,2)];
     allPVals = [allPVals;geomean(PValues,2)];
