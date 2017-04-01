@@ -3,7 +3,7 @@ if ~exist('SPIKEDETAILS','var')
     load('DetailsAt500MS')
 end
 tempSeed = rng;
-rng(736775);
+rng(736774);
 FIT_LOGISTIC = {};
 
 
