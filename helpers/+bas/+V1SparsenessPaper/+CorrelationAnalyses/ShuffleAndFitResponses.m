@@ -15,7 +15,8 @@ for i = 1:length(SPIKEDETAILS)
         numShuffles = 100;
         for j = 1:numShuffles
             fprintf('%d.',j)
-            fitsThisShuffle.shuffledSession = bas.V1SparsenessPaper.CorrelationAnalyses.createSessionFromShuffledResponses(bas.V1SparsenessPaper.CorrelationAnalyses.shuffleResponses(separatedResponses));
+            fitsThisShuffle.shuffledSession = bas.V1SparsenessPaper.CorrelationAnalyses.createSessionFromShuffledResponses(...
+                bas.V1SparsenessPaper.CorrelationAnalyses.shuffleResponses(separatedResponses));
             fitsThisShuffle.LogisticRegression = bas.V1SparsenessPaper.CorrelationAnalyses.FitLogisticRegressionToGivenSession(fitsThisShuffle.shuffledSession);
             fitsThisSession{end+1} = fitsThisShuffle;
         end
