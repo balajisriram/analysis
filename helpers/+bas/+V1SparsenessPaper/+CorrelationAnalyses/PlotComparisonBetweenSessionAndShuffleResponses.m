@@ -5,7 +5,7 @@ numSignificantNeuronsInSession = [];
 
 % location of data
 loc1 = 'C:\Users\ghosh\Desktop\analysis\FitsIndividual_1';
-loc2 = 'C:\Users\ghosh\Desktop\analysis\FitAllShuffled';
+loc2 = 'C:\Users\ghosh\Desktop\analysis\FitsForSessions_Shuffled_new';
 
 AllSessionsPerformanceMean = [] ;
 AllSessionsPerformanceStd = [] ;
@@ -74,3 +74,9 @@ performancesForShuffled = cellfun(@nanmean,ShuffledSessionPerformance);
 actualPerformance = AllSessionsPerformanceMean;
 changeInPerformance = performancesForShuffled-actualPerformance;
 scatter(numNeurons,changeInPerformance)
+%%
+g = gramm('x',[numNeurons numNeurons],'y',[AllSessionsPerformanceMean performancesForShuffled],'color',[ones(1,58) 2*ones(1,58)]);
+g.geom_point();
+g.stat_glm();
+figure('Position',[100 100 800 400]);
+g.draw();

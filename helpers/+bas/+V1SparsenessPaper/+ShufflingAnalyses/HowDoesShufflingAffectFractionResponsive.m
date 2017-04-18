@@ -12,18 +12,20 @@ for i = 3 %setdiff(1:58,[11,35])
     separatedResponses = bas.V1SparsenessPaper.CorrelationAnalyses.separateResponsesByStimulus(DETAILS{i});
     fOrig = bas.V1SparsenessPaper.ShufflingAnalyses.getFractionResponsive(separatedResponses,'vector');
     
-    boxplot(fOrig,'plotstyle','compact','colors','r');
-    hold on;
     
+    hold on;
+    fNews = [];
     for j = 1:100
         shuffledSession = bas.V1SparsenessPaper.CorrelationAnalyses.shuffleResponses(separatedResponses);
         fNew = bas.V1SparsenessPaper.ShufflingAnalyses.getFractionResponsive(shuffledSession,'vector');
-        
-        if kstest2(fOrig,fNew)
-            disp('sig');
-        else
-            disp('no sig');
-        end
+        fNews = [fNews fNew];
+%         if kstest2(fOrig,fNew)
+%             boxplot(fNew,'plotstyle','compact','colors','g');
+%         else
+%             boxplot(fNew,'plotstyle','compact','colors','g');
+%         end
     end
-   
+    
+    boxplot([fOrig fNews],'plotstyle','compact','colors','k');
+    
 end
