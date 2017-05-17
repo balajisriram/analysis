@@ -1,6 +1,8 @@
 function AllNeurons = GetDetailsOnCorrelationBetweenUnits
 if ~exist('DETAILS','var')
-    load('Details_SpikeDetails')
+    load('DetailsAt500MS')
+    DETAILS = SPIKEDETAILS
+    clear SPIKEDETAILS
 end
 
 AllNeurons = {};
@@ -51,8 +53,12 @@ for i = setdiff(1:length(DETAILS),[7,9,10,11,17,35])
                         coef = corrcoef(sp1,sp2);
                         try
                             SpikeRateCorrelation(j,k,1,l,m) = coef(2);
-                        catch
-                            SpikeRateCorrelation(j,k,1,l,m) = NaN;
+                        catch ex
+                            if strcmp(ex.message,'Index exceeds matrix dimensions.') && length(coef)==1
+                                SpikeRateCorrelation(j,k,1,l,m) = NaN;
+                            else
+                                keyboard
+                            end
                         end
                         
                         % right
@@ -63,8 +69,12 @@ for i = setdiff(1:length(DETAILS),[7,9,10,11,17,35])
                         coef = corrcoef(sp1,sp2);
                         try
                             SpikeRateCorrelation(j,k,2,l,m) = coef(2);
-                        catch
-                            SpikeRateCorrelation(j,k,2,l,m) = NaN;
+                        catch ex
+                            if strcmp(ex.message,'Index exceeds matrix dimensions.') && length(coef)==1
+                                SpikeRateCorrelation(j,k,2,l,m) = NaN;
+                            else
+                                keyboard
+                            end
                         end
                     else
                         SpikeRateCorrelation(j,k,1,l,m) = NaN;
