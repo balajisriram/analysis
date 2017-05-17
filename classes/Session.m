@@ -51,7 +51,7 @@ classdef Session
             assert(isa(mon,'monitor'),'mon is not a monitor');
             sess.monitor = mon;
  
-            assert(isa(rigState,'rig'),'rigStat is not a rig');
+            assert(isa(rigState,'rig'),'rigState is not a rig');
             sess.rig = rigState;
             
             sess.sessionID = sprintf('%s_%s',upper(subject),datestr(sess.timeStamp,30));
