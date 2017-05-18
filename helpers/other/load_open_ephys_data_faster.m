@@ -162,6 +162,17 @@ switch filetype
 end
 fclose(fid);
 
+if (isfield(info.header,'sampleRate'))
+    if ~ischar(info.header.sampleRate)
+        timestamps = timestamps./info.header.sampleRate; % convert to seconds
+    end
+    if strcmp(info.header.channelType,'Continuous')
+        dataMean = mean(data);
+        dataSTD = std(data);
+    end
+end
+
+
 function seg = segRead_int16(segName, mf)
     %% This function is specifically for reading continuous data. 
     %  It keeps the data in int16 precision, which can drastically decrease
