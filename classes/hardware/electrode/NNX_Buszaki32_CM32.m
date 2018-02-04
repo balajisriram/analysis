@@ -10,13 +10,18 @@ classdef NNX_Buszaki32_CM32<electrode
     
     methods
         %% constructor
-        function e = NNX_Buszaki32_CM32(varargin)
+        function e = NNX_Buszaki32_CM32(depth,varargin)
+            e = e@electrode(depth);
+            
             e.type = 'Neuronexus';
             e.numChans = 32;
             e.configuration = '4 Shank; Buszaki 32 config';
+            
             if length(varargin)==1
                 e.threshStdDev = varargin{1};
             end
+            
+            
         end % electrode
         
         %% getPotentialTrodes (returns which channels to group together).

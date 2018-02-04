@@ -5,10 +5,12 @@ classdef electrode
         numChans = NaN;
         impedance = NaN;
         disabled = [];
+        lowestDepth = [];
     end
     methods
         %% constructor
-        function s = electrode()
+        function s = electrode(depth)
+            s.lowestDepth = depth;
         end % electrode
         
         %% getPotentialTrodes (returns which channels to group together).
